@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useInfluencers } from '../hooks/useInfluencers';
+import { useAppContext } from '../context/AppContext';
+import { Influencer as InfluencerType } from '../services/database';
 import { 
   Users, 
   Search, 
@@ -19,28 +22,31 @@ import {
   Share2
 } from 'lucide-react';
 
-interface Influencer {
-  id: number;
+// Interface pour l'affichage des influenceurs
+interface InfluencerDisplay {
+  id: string;
   name: string;
   avatar: string;
   handle: string;
   niche: string;
   followers: {
-    instagram: number;
+    instagram?: number;
     tiktok?: number;
     youtube?: number;
+    twitter?: number;
+    other?: number;
   };
   engagement: number;
-  email: string;
-  location: string;
-  age: string;
-  gender: string;
-  audience: {
+  email?: string;
+  location?: string;
+  age?: string;
+  gender?: string;
+  audience?: {
     ageRange: string;
     genderSplit: string;
     topLocations: string[];
   };
-  status: string;
+  status?: string;
 }
 
 const Influencers = () => {

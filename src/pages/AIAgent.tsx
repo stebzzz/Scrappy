@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bot, 
   Zap, 
@@ -14,6 +14,9 @@ import {
   Users,
   Mail
 } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { useAI } from '../hooks/useAI';
+import { Brand, Influencer } from '../services/database';
 
 const AIAgent = () => {
   const [selectedInfluencer, setSelectedInfluencer] = useState('');
@@ -23,55 +26,93 @@ const AIAgent = () => {
   const [emailVariants, setEmailVariants] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('generation');
 
-  // Données fictives pour les influenceurs et les marques
-  const influencers = [
-    { id: '1', name: 'Sophie Dubois', handle: '@sophiebeauty', followers: '245K', niche: 'Beauté écologique' },
-    { id: '2', name: 'Camille Moreau', handle: '@camillemode', followers: '320K', niche: 'Mode et lifestyle' },
-    { id: '3', name: 'Léa Bernard', handle: '@leatravel', followers: '210K', niche: 'Voyage de luxe' }
-  ];
+  // Utiliser les données du contexte de l'application
+  const { brands, influencers } = useAppContext();
+  const { generateEmail, isGenerating: isAIGenerating, error: aiError } = useAI();
+  
+  // État pour stocker l'historique des emails générés
+  const [emailHistory, setEmailHistory] = useState<Array<{
+    id: string;
+    brandName: string;
+    influencerName: string;
+    content: string;
+    date: Date;
+  }>>([]);
+  
+  // Effet pour charger l'historique des emails depuis le stockage local
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('emailHistory');
+    if (storedHistory) {
+      try {
+        setEmailHistory(JSON.parse(storedHistory));
+      } catch (error) {
+        console.error('Erreur lors du chargement de l\'historique des emails:', error);
+      }
+    }
+  }, []);
 
-  const brands = [
-    { id: '1', name: "L'Oréal Paris", industry: 'Beauté', news: 'Lancement Collection Été 2025 (produits durables)' },
-    { id: '2', name: 'Sephora France', industry: 'Beauté', news: 'Campagne Essentiels Printemps' },
-    { id: '3', name: 'Chanel', industry: 'Luxe', news: 'Anniversaire du parfum N°5' }
-  ];
-
-  const handleGenerateEmail = () => {
+  const handleGenerateEmail = async () => {
     if (!selectedInfluencer || !selectedBrand) return;
     
     setIsGenerating(true);
     
-    // Simuler la génération d'email par l'IA
-    setTimeout(() => {
+    try {
+      // Récupérer les objets sélectionnés
       const selectedInf = influencers.find(inf => inf.id === selectedInfluencer);
       const selectedBr = brands.find(br => br.id === selectedBrand);
       
-      const emailTemplate = `
-Cher Service Marketing de ${selectedBr?.name},
-
-J'espère que ce message vous trouve bien. Je vous contacte de la part de Scrappy concernant ${selectedInf?.name} (${selectedInf?.handle}).
-
-Nous avons remarqué votre récente actualité concernant ${selectedBr?.news} et pensons que ${selectedInf?.name} serait un(e) excellent(e) partenaire pour cette initiative.
-
-${selectedInf?.name} est spécialisé(e) dans le domaine ${selectedInf?.niche} avec une audience engagée de ${selectedInf?.followers} abonnés. Son contenu authentique et sa capacité à créer des narratifs engageants autour des marques qu'il/elle représente en font un(e) partenaire idéal(e) pour votre campagne.
-
-Nous serions ravis de discuter d'une potentielle collaboration. Seriez-vous disponible pour un appel la semaine prochaine?
-
-Cordialement,
-L'équipe Scrappy
-      `;
+      if (!selectedInf || !selectedBr) {
+        throw new Error('Influenceur ou marque non trouvé');
+      }
       
-      setGeneratedEmail(emailTemplate);
+      // Préparer les données pour l'IA
+      const brandInfo = {
+        name: selectedBr.name,
+        industry: selectedBr.industry,
+        news: selectedBr.news || ''
+      };
       
-      // Générer des variantes
-      setEmailVariants([
-        emailTemplate.replace("J'espère que ce message vous trouve bien.", "J'espère que vous allez bien."),
-        emailTemplate.replace("un(e) excellent(e) partenaire", "un(e) collaborateur(trice) idéal(e)"),
-        emailTemplate.replace("Nous serions ravis de discuter", "Nous aimerions échanger")
-      ]);
+      const influencerInfo = {
+        name: selectedInf.name,
+        handle: selectedInf.handle,
+        followers: typeof selectedInf.followers === 'number' ? 
+          `${selectedInf.followers.toLocaleString()}` : 
+          String(selectedInf.followers),
+        niche: selectedInf.niche
+      };
       
+      // Générer l'email avec l'IA
+      const emailContent = await generateEmail(brandInfo, influencerInfo);
+      setGeneratedEmail(emailContent);
+      
+      // Générer des variantes (on pourrait aussi utiliser l'IA pour ça)
+      const variants = [
+        emailContent.replace(/Cher/g, 'Bonjour'),
+        emailContent.replace(/collaboration/g, 'partenariat'),
+        emailContent.replace(/disponible/g, 'intéressé')
+      ];
+      setEmailVariants(variants);
+      
+      // Ajouter à l'historique
+      const newEmailEntry = {
+        id: Date.now().toString(),
+        brandName: selectedBr.name,
+        influencerName: selectedInf.name,
+        content: emailContent,
+        date: new Date()
+      };
+      
+      const updatedHistory = [newEmailEntry, ...emailHistory];
+      setEmailHistory(updatedHistory);
+      
+      // Sauvegarder dans le stockage local
+      localStorage.setItem('emailHistory', JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Erreur lors de la génération de l\'email:', error);
+      alert(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -431,4 +472,4 @@ L'équipe Scrappy
   );
 };
 
-export default AIAgent; 
+export default AIAgent;

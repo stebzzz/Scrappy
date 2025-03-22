@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { 
   Globe, 
   Search, 
@@ -14,8 +13,13 @@ import {
   Trash2,
   Eye,
   Edit,
-  Database
+  Database,
+  ExternalLink
 } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { useScraping } from '../hooks/useScraping';
+import { Brand, addBrand, updateBrand, ScrapingSettings, getScrapingSettings, saveScrapingSettings } from '../services/database';
+import { SCRAPING_SETTINGS } from '../config/app-settings';
 
 const Scraping = () => {
   const [activeTab, setActiveTab] = useState('brands');
@@ -23,122 +27,323 @@ const Scraping = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
-  // Données fictives pour les marques scrapées
-  const scrapedBrands = [
-    { 
-      id: 1, 
-      name: "L'Oréal Paris", 
-      industry: "Beauté", 
-      news: "Lancement Collection Été 2025 (produits durables)", 
-      lastUpdated: "Il y a 2 jours",
-      status: "Actif",
-      contacts: 3
+  // Utiliser les données du contexte de l'application
+  const { brands, setBrands, refreshData } = useAppContext();
+  const { 
+    scrapeBrandContact, 
+    scrapeBrandNews, 
+    createCustomScrapingJob, 
+    isLoading: isScrapingLoading, 
+    error: scrapingError 
+  } = useScraping();
+  
+  // État pour les nouvelles marques à scraper
+  const [newBrandUrl, setNewBrandUrl] = useState('');
+  const [newBrandIndustry, setNewBrandIndustry] = useState('');
+  const [scrapingResults, setScrapingResults] = useState<any>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  
+  // État pour les contacts
+  const [contacts, setContacts] = useState<Array<{
+    id: string;
+    name: string;
+    position: string;
+    company: string;
+    email: string;
+    source: string;
+    lastUpdated: Date | string;
+  }>>([]);
+  
+  // État pour les paramètres de scraping
+  const [scrapingSettings, setScrapingSettings] = useState<ScrapingSettings>({
+    waitTime: SCRAPING_SETTINGS.defaultSettings.waitTime,
+    maxRetries: SCRAPING_SETTINGS.defaultSettings.maxRetries,
+    javascript: SCRAPING_SETTINGS.defaultSettings.javascript,
+    useProxy: false,
+    proxyUrl: '',
+    frequency: 'daily',
+    sources: {
+      firecrawl: true,
+      mediaWatch: true,
+      apollo: true,
+      linkedin: true
     },
-    { 
-      id: 2, 
-      name: "Sephora France", 
-      industry: "Beauté", 
-      news: "Campagne Essentiels Printemps", 
-      lastUpdated: "Il y a 5 jours",
-      status: "Actif",
-      contacts: 2
-    },
-    { 
-      id: 3, 
-      name: "Chanel", 
-      industry: "Luxe", 
-      news: "Anniversaire du parfum N°5", 
-      lastUpdated: "Il y a 1 semaine",
-      status: "Actif",
-      contacts: 4
-    },
-    { 
-      id: 4, 
-      name: "Nike France", 
-      industry: "Sport", 
-      news: "Nouvelle collection sportswear", 
-      lastUpdated: "Il y a 3 jours",
-      status: "En pause",
-      contacts: 1
-    },
-    { 
-      id: 5, 
-      name: "Dior", 
-      industry: "Luxe", 
-      news: "Lancement nouveau parfum", 
-      lastUpdated: "Il y a 4 jours",
-      status: "Actif",
-      contacts: 2
+    airtableSync: true
+  });
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+  
+  // Effet pour charger les paramètres de scraping
+  useEffect(() => {
+    const loadScrapingSettings = async () => {
+      try {
+        const settings = await getScrapingSettings();
+        if (settings) {
+          setScrapingSettings(settings);
+          setSettingsId(settings.id || null);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des paramètres de scraping:', error);
+      }
+    };
+    
+    loadScrapingSettings();
+  }, []);
+  
+  // Fonction pour sauvegarder les paramètres de scraping
+  const handleSaveSettings = async () => {
+    try {
+      // Récupérer les valeurs des champs du formulaire
+      const waitTime = parseInt((document.getElementById('waitTime') as HTMLInputElement).value);
+      const maxRetries = parseInt((document.getElementById('maxRetries') as HTMLInputElement).value);
+      const javascript = (document.querySelector('#javascript') as HTMLInputElement).checked;
+      const useProxy = (document.querySelector('#useProxy') as HTMLInputElement).checked;
+      const proxyUrl = (document.getElementById('proxyUrl') as HTMLInputElement).value;
+      
+      // Récupérer la fréquence sélectionnée
+      const frequencyInputs = document.querySelectorAll('input[name="frequency"]');
+      let frequency: 'daily' | 'weekly' | 'manual' = 'daily';
+      frequencyInputs.forEach((input: Element) => {
+        if ((input as HTMLInputElement).checked) {
+          frequency = (input as HTMLInputElement).value as 'daily' | 'weekly' | 'manual';
+        }
+      });
+      
+      // Récupérer les sources activées
+      const sourceFirecrawl = (document.querySelector('#sourceFirecrawl') as HTMLInputElement).checked;
+      const sourceMediaWatch = (document.querySelector('#sourceMediaWatch') as HTMLInputElement).checked;
+      const sourceApollo = (document.querySelector('#sourceApollo') as HTMLInputElement).checked;
+      const sourceLinkedin = (document.querySelector('#sourceLinkedin') as HTMLInputElement).checked;
+      
+      // Récupérer l'état de la synchronisation Airtable
+      const airtableSync = (document.querySelector('#airtableSync') as HTMLInputElement).checked;
+      
+      // Créer l'objet de paramètres
+      const settings: ScrapingSettings = {
+        id: settingsId || undefined,
+        waitTime,
+        maxRetries,
+        javascript,
+        useProxy,
+        proxyUrl: useProxy ? proxyUrl : undefined,
+        frequency,
+        sources: {
+          firecrawl: sourceFirecrawl,
+          mediaWatch: sourceMediaWatch,
+          apollo: sourceApollo,
+          linkedin: sourceLinkedin
+        },
+        airtableSync
+      };
+      
+      // Sauvegarder dans Firebase
+      const savedId = await saveScrapingSettings(settings);
+      setSettingsId(savedId);
+      
+      // Mettre à jour l'état local
+      setScrapingSettings(settings);
+      
+      alert('Paramètres de scraping sauvegardés avec succès!');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des paramètres:', error);
+      alert(`Erreur lors de la sauvegarde: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
-  ];
+  };
+  
+  // Effet pour extraire les contacts des marques
+  useEffect(() => {
+    // Extraire les contacts des marques
+    const extractedContacts = brands
+      .filter(brand => brand.contactEmail || (brand.socialLinks && Object.keys(brand.socialLinks).length > 0))
+      .flatMap(brand => {
+        const brandContacts = [];
+        
+        if (brand.contactEmail) {
+          brandContacts.push({
+            id: `${brand.id}-email`,
+            name: brand.contactEmail.split('@')[0].replace('.', ' ').replace('-', ' '),
+            position: 'Contact principal',
+            company: brand.name,
+            email: brand.contactEmail,
+            source: 'Site web',
+            lastUpdated: brand.lastUpdated || new Date()
+          });
+        }
+        
+        if (brand.socialLinks) {
+          Object.entries(brand.socialLinks).forEach(([platform, url], index) => {
+            brandContacts.push({
+              id: `${brand.id}-${platform}-${index}`,
+              name: `Contact ${platform}`,
+              position: `Présence sur ${platform}`,
+              company: brand.name,
+              email: '-',
+              source: platform,
+              lastUpdated: brand.lastUpdated || new Date()
+            });
+          });
+        }
+        
+        return brandContacts;
+      });
+    
+    setContacts(extractedContacts);
+  }, [brands]);
 
-  // Données fictives pour les contacts identifiés
-  const scrapedContacts = [
-    {
-      id: 1,
-      name: "Marie Dupont",
-      position: "Responsable Marketing",
-      company: "L'Oréal Paris",
-      email: "marie.dupont@loreal.com",
-      source: "LinkedIn",
-      lastUpdated: "Il y a 2 jours"
-    },
-    {
-      id: 2,
-      name: "Thomas Martin",
-      position: "Directeur Communication",
-      company: "L'Oréal Paris",
-      email: "thomas.martin@loreal.com",
-      source: "Site web",
-      lastUpdated: "Il y a 2 jours"
-    },
-    {
-      id: 3,
-      name: "Sophie Leclerc",
-      position: "Responsable Influence",
-      company: "L'Oréal Paris",
-      email: "sophie.leclerc@loreal.com",
-      source: "Apollo",
-      lastUpdated: "Il y a 3 jours"
-    },
-    {
-      id: 4,
-      name: "Julie Moreau",
-      position: "Responsable Marketing",
-      company: "Sephora France",
-      email: "julie.moreau@sephora.com",
-      source: "LinkedIn",
-      lastUpdated: "Il y a 5 jours"
-    },
-    {
-      id: 5,
-      name: "Alexandre Petit",
-      position: "Directeur Communication",
-      company: "Sephora France",
-      email: "alexandre.petit@sephora.com",
-      source: "Site web",
-      lastUpdated: "Il y a 6 jours"
+  const handleStartScraping = async () => {
+    if (!newBrandUrl) {
+      alert('Veuillez entrer une URL de marque');
+      return;
     }
-  ];
-
-  const handleStartScraping = () => {
+    
     setIsScrapingActive(true);
-    // Simuler un scraping
-    setTimeout(() => {
+    setScrapingResults(null);
+    
+    try {
+      // Scraper les informations de contact
+      const contactInfo = await scrapeBrandContact(newBrandUrl);
+      
+      // Scraper les actualités
+      let newsInfo;
+      try {
+        newsInfo = await scrapeBrandNews(newBrandUrl);
+      } catch (error) {
+        console.warn('Impossible de récupérer les actualités:', error);
+        newsInfo = { newsItems: [] };
+      }
+      
+      // Extraire le nom de domaine pour le nom de la marque
+      const urlObj = new URL(newBrandUrl);
+      const domain = urlObj.hostname.replace('www.', '').split('.')[0];
+      const brandName = domain.charAt(0).toUpperCase() + domain.slice(1);
+      
+      // Créer un nouvel objet marque
+      const newBrand: Omit<Brand, 'id'> = {
+        name: brandName,
+        industry: newBrandIndustry || 'Non spécifié',
+        website: newBrandUrl,
+        contactEmail: contactInfo?.contactEmail?.[0] || null,
+        contactPhone: contactInfo?.contactPhone?.[0] || null,
+        socialLinks: contactInfo?.socialLinks?.reduce((acc: Record<string, string>, link: string) => {
+          const platform = link.includes('facebook') ? 'facebook' :
+                         link.includes('instagram') ? 'instagram' :
+                         link.includes('twitter') ? 'twitter' :
+                         link.includes('linkedin') ? 'linkedin' :
+                         'other';
+          acc[platform] = link;
+          return acc;
+        }, {}),
+        news: newsInfo?.newsItems?.[0]?.newsTitle || newsInfo?.newsTitle || '',
+        lastUpdated: new Date(),
+        status: 'active',
+        notes: `Scrapé automatiquement le ${new Date().toLocaleDateString()}`
+      };
+      
+      // Ajouter la marque à Firebase
+      const brandId = await addBrand(newBrand);
+      
+      // Mettre à jour l'état local
+      const brandWithId = { ...newBrand, id: brandId };
+      setBrands([...brands, brandWithId]);
+      
+      // Afficher les résultats
+      setScrapingResults({
+        brand: brandWithId,
+        contactInfo,
+        newsInfo
+      });
+      
+      // Réinitialiser le formulaire
+      setNewBrandUrl('');
+      setNewBrandIndustry('');
+      
+      // Rafraîchir les données
+      refreshData();
+      
+    } catch (error) {
+      console.error('Erreur lors du scraping:', error);
+      alert(`Erreur lors du scraping: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
       setIsScrapingActive(false);
-    }, 3000);
+    }
+  };
+  
+  // Fonction pour mettre à jour les informations d'une marque
+  const handleUpdateBrand = async (brandId: string) => {
+    setSelectedBrandId(brandId);
+    const brand = brands.find(b => b.id === brandId);
+    
+    if (!brand || !brand.website) {
+      alert('Impossible de mettre à jour: URL manquante');
+      return;
+    }
+    
+    setIsScrapingActive(true);
+    
+    try {
+      // Scraper les nouvelles informations
+      const [contactInfo, newsInfo] = await Promise.all([
+        scrapeBrandContact(brand.website),
+        scrapeBrandNews(brand.website).catch(() => ({ newsItems: [] }))
+      ]);
+      
+      // Préparer les mises à jour
+      const updates: Partial<Brand> = {
+        contactEmail: contactInfo?.contactEmail?.[0] || brand.contactEmail,
+        contactPhone: contactInfo?.contactPhone?.[0] || brand.contactPhone,
+        news: newsInfo?.newsItems?.[0]?.newsTitle || newsInfo?.newsTitle || brand.news,
+        lastUpdated: new Date(),
+      };
+      
+      // Mettre à jour les liens sociaux s'ils existent
+      if (contactInfo?.socialLinks?.length > 0) {
+        updates.socialLinks = contactInfo.socialLinks.reduce((acc: Record<string, string>, link: string) => {
+          const platform = link.includes('facebook') ? 'facebook' :
+                         link.includes('instagram') ? 'instagram' :
+                         link.includes('twitter') ? 'twitter' :
+                         link.includes('linkedin') ? 'linkedin' :
+                         'other';
+          acc[platform] = link;
+          return acc;
+        }, {});
+      }
+      
+      // Mettre à jour dans Firebase
+      await updateBrand(brandId, updates);
+      
+      // Mettre à jour l'état local
+      const updatedBrands = brands.map(b => 
+        b.id === brandId ? { ...b, ...updates } : b
+      );
+      setBrands(updatedBrands);
+      
+      // Afficher les résultats
+      setScrapingResults({
+        brand: { ...brand, ...updates },
+        contactInfo,
+        newsInfo
+      });
+      
+      alert('Marque mise à jour avec succès!');
+      
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      alert(`Erreur lors de la mise à jour: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setIsScrapingActive(false);
+      setSelectedBrandId(null);
+    }
   };
 
   // Filtrer les marques en fonction du terme de recherche et du statut
-  const filteredBrands = scrapedBrands.filter(brand =>
+  const filteredBrands = brands.filter(brand =>
     (brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     brand.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    brand.news.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    brand.news?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (filterStatus === null || brand.status === filterStatus)
   );
 
   // Filtrer les contacts en fonction du terme de recherche
-  const filteredContacts = scrapedContacts.filter(contact =>
+  const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,37 +379,241 @@ const Scraping = () => {
         </div>
       </div>
 
+      {/* Formulaire de scraping */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-6">
-        <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold mb-2">Scraping automatisé</h2>
-            <p className="text-gray-400 text-sm">
-              Collecte automatique des actualités des marques et identification des contacts pertinents.
-            </p>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Ajouter une nouvelle marque à scraper</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label htmlFor="brandUrl" className="block text-sm font-medium text-gray-400 mb-1">URL du site web</label>
+              <input
+                id="brandUrl"
+                type="url"
+                placeholder="https://example.com"
+                className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={newBrandUrl}
+                onChange={(e) => setNewBrandUrl(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="brandIndustry" className="block text-sm font-medium text-gray-400 mb-1">Industrie (optionnel)</label>
+              <input
+                id="brandIndustry"
+                type="text"
+                placeholder="Ex: Mode, Technologie, Alimentation..."
+                className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={newBrandIndustry}
+                onChange={(e) => setNewBrandIndustry(e.target.value)}
+              />
+            </div>
           </div>
-          <button 
-            className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center ${
-              isScrapingActive 
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white'
-            }`}
-            onClick={handleStartScraping}
-            disabled={isScrapingActive}
-          >
-            {isScrapingActive ? (
-              <>
-                <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                Scraping en cours...
-              </>
-            ) : (
-              <>
-                <Globe className="w-5 h-5 mr-2" />
-                Lancer un nouveau scraping
-              </>
-            )}
-          </button>
+          <div className="flex justify-end">
+            <button 
+              className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center ${isScrapingActive ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+              onClick={handleStartScraping}
+              disabled={isScrapingActive || !newBrandUrl}
+            >
+              {isScrapingActive ? (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                  Scraping en cours...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5 mr-2" />
+                  Scraper et ajouter
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Résultats du scraping */}
+      {scrapingResults && (
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-6">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-emerald-400" />
+              Résultats du scraping
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-md font-medium mb-2 text-emerald-400">Informations de la marque</h3>
+                <div className="bg-gray-700 rounded-lg p-4">
+                  <p className="mb-2"><span className="text-gray-400">Nom:</span> {scrapingResults.brand.name}</p>
+                  <p className="mb-2"><span className="text-gray-400">Industrie:</span> {scrapingResults.brand.industry}</p>
+                  <p className="mb-2"><span className="text-gray-400">Site web:</span> <a href={scrapingResults.brand.website} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline flex items-center">{scrapingResults.brand.website} <ExternalLink className="w-3 h-3 ml-1" /></a></p>
+                  <p className="mb-2"><span className="text-gray-400">Email:</span> {scrapingResults.brand.contactEmail || 'Non trouvé'}</p>
+                  <p className="mb-2"><span className="text-gray-400">Téléphone:</span> {scrapingResults.brand.contactPhone || 'Non trouvé'}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-md font-medium mb-2 text-emerald-400">Réseaux sociaux</h3>
+                <div className="bg-gray-700 rounded-lg p-4">
+                  {scrapingResults.brand.socialLinks && Object.keys(scrapingResults.brand.socialLinks).length > 0 ? (
+                    <ul>
+                      {Object.entries(scrapingResults.brand.socialLinks).map(([platform, url]) => (
+                        <li key={platform} className="mb-2">
+                          <span className="text-gray-400 capitalize">{platform}:</span>{' '}
+                          <a href={url as string} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline flex items-center inline-flex">
+                            {url as string} <ExternalLink className="w-3 h-3 ml-1" />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Aucun réseau social trouvé</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            {scrapingResults.newsInfo && (
+              <div className="mt-4">
+                <h3 className="text-md font-medium mb-2 text-emerald-400">Actualités récentes</h3>
+                <div className="bg-gray-700 rounded-lg p-4">
+                  {scrapingResults.newsInfo.newsItems && scrapingResults.newsInfo.newsItems.length > 0 ? (
+                    <ul>
+                      {scrapingResults.newsInfo.newsItems.slice(0, 3).map((item: any, index: number) => (
+                        <li key={index} className="mb-3 pb-3 border-b border-gray-600 last:border-0">
+                          <p className="font-medium">{item.newsTitle || 'Titre non disponible'}</p>
+                          <p className="text-sm text-gray-400">{item.newsDate || 'Date non disponible'}</p>
+                          <p className="text-sm mt-1">{item.newsContent?.substring(0, 150)}...</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : scrapingResults.newsInfo.newsTitle ? (
+                    <div>
+                      <p className="font-medium">{scrapingResults.newsInfo.newsTitle}</p>
+                      <p className="text-sm mt-1">{scrapingResults.newsInfo.newsContent?.substring(0, 150)}...</p>
+                    </div>
+                  ) : (
+                    <p>Aucune actualité trouvée</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Formulaire de scraping */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-6">
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Ajouter une nouvelle marque à scraper</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label htmlFor="brandUrl" className="block text-sm font-medium text-gray-400 mb-1">URL du site web</label>
+              <input
+                id="brandUrl"
+                type="url"
+                placeholder="https://example.com"
+                className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={newBrandUrl}
+                onChange={(e) => setNewBrandUrl(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="brandIndustry" className="block text-sm font-medium text-gray-400 mb-1">Industrie (optionnel)</label>
+              <input
+                id="brandIndustry"
+                type="text"
+                placeholder="Ex: Mode, Technologie, Alimentation..."
+                className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={newBrandIndustry}
+                onChange={(e) => setNewBrandIndustry(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button 
+              className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center ${isScrapingActive ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+              onClick={handleStartScraping}
+              disabled={isScrapingActive || !newBrandUrl}
+            >
+              {isScrapingActive ? (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                  Scraping en cours...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5 mr-2" />
+                  Scraper et ajouter
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Résultats du scraping */}
+      {scrapingResults && (
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-6">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-emerald-400" />
+              Résultats du scraping
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-md font-medium mb-2 text-emerald-400">Informations de la marque</h3>
+                <div className="bg-gray-700 rounded-lg p-4">
+                  <p className="mb-2"><span className="text-gray-400">Nom:</span> {scrapingResults.brand.name}</p>
+                  <p className="mb-2"><span className="text-gray-400">Industrie:</span> {scrapingResults.brand.industry}</p>
+                  <p className="mb-2"><span className="text-gray-400">Site web:</span> <a href={scrapingResults.brand.website} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline flex items-center">{scrapingResults.brand.website} <ExternalLink className="w-3 h-3 ml-1" /></a></p>
+                  <p className="mb-2"><span className="text-gray-400">Email:</span> {scrapingResults.brand.contactEmail || 'Non trouvé'}</p>
+                  <p className="mb-2"><span className="text-gray-400">Téléphone:</span> {scrapingResults.brand.contactPhone || 'Non trouvé'}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-md font-medium mb-2 text-emerald-400">Réseaux sociaux</h3>
+                <div className="bg-gray-700 rounded-lg p-4">
+                  {scrapingResults.brand.socialLinks && Object.keys(scrapingResults.brand.socialLinks).length > 0 ? (
+                    <ul>
+                      {Object.entries(scrapingResults.brand.socialLinks).map(([platform, url]) => (
+                        <li key={platform} className="mb-2">
+                          <span className="text-gray-400 capitalize">{platform}:</span>{' '}
+                          <a href={url as string} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline flex items-center inline-flex">
+                            {url as string} <ExternalLink className="w-3 h-3 ml-1" />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Aucun réseau social trouvé</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            {scrapingResults.newsInfo && (
+              <div className="mt-4">
+                <h3 className="text-md font-medium mb-2 text-emerald-400">Actualités récentes</h3>
+                <div className="bg-gray-700 rounded-lg p-4">
+                  {scrapingResults.newsInfo.newsItems && scrapingResults.newsInfo.newsItems.length > 0 ? (
+                    <ul>
+                      {scrapingResults.newsInfo.newsItems.slice(0, 3).map((item: any, index: number) => (
+                        <li key={index} className="mb-3 pb-3 border-b border-gray-600 last:border-0">
+                          <p className="font-medium">{item.newsTitle || 'Titre non disponible'}</p>
+                          <p className="text-sm text-gray-400">{item.newsDate || 'Date non disponible'}</p>
+                          <p className="text-sm mt-1">{item.newsContent?.substring(0, 150)}...</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : scrapingResults.newsInfo.newsTitle ? (
+                    <div>
+                      <p className="font-medium">{scrapingResults.newsInfo.newsTitle}</p>
+                      <p className="text-sm mt-1">{scrapingResults.newsInfo.newsContent?.substring(0, 150)}...</p>
+                    </div>
+                  ) : (
+                    <p>Aucune actualité trouvée</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mb-6">
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -255,235 +664,786 @@ const Scraping = () => {
         </div>
       </div>
 
+      {/* Liste des marques */}
       {activeTab === 'brands' && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-gray-400 text-sm border-b border-gray-700">
-                  <th className="p-4 font-medium">Marque</th>
-                  <th className="p-4 font-medium">Industrie</th>
-                  <th className="p-4 font-medium">Actualité récente</th>
-                  <th className="p-4 font-medium">Contacts</th>
-                  <th className="p-4 font-medium">Dernière mise à jour</th>
-                  <th className="p-4 font-medium">Statut</th>
-                  <th className="p-4 font-medium">Actions</th>
+                <tr className="bg-gray-700">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Marque</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Industrie</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contact</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Dernière actualité</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Dernière mise à jour</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredBrands.map((brand) => (
-                  <tr key={brand.id} className="border-b border-gray-700 hover:bg-gray-700 transition-colors">
-                    <td className="p-4 font-medium">{brand.name}</td>
-                    <td className="p-4">{brand.industry}</td>
-                    <td className="p-4 max-w-xs truncate">{brand.news}</td>
-                    <td className="p-4">{brand.contacts}</td>
-                    <td className="p-4 text-gray-400">{brand.lastUpdated}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        brand.status === 'Actif' 
-                          ? 'bg-emerald-900 text-emerald-300' 
-                          : 'bg-gray-700 text-gray-300'
-                      }`}>
-                        {brand.status}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex space-x-2">
-                        <button className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-red-500">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {filteredBrands.length === 0 && (
-            <div className="p-8 text-center text-gray-400">
-              <Building2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>Aucune marque trouvée</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'contacts' && (
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-gray-400 text-sm border-b border-gray-700">
-                  <th className="p-4 font-medium">Nom</th>
-                  <th className="p-4 font-medium">Poste</th>
-                  <th className="p-4 font-medium">Entreprise</th>
-                  <th className="p-4 font-medium">Email</th>
-                  <th className="p-4 font-medium">Source</th>
-                  <th className="p-4 font-medium">Dernière mise à jour</th>
-                  <th className="p-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredContacts.map((contact) => (
-                  <tr key={contact.id} className="border-b border-gray-700 hover:bg-gray-700 transition-colors">
-                    <td className="p-4 font-medium">{contact.name}</td>
-                    <td className="p-4">{contact.position}</td>
-                    <td className="p-4">{contact.company}</td>
-                    <td className="p-4">{contact.email}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        contact.source === 'LinkedIn' 
-                          ? 'bg-blue-900 text-blue-300' 
-                          : contact.source === 'Apollo'
-                            ? 'bg-purple-900 text-purple-300'
-                            : 'bg-gray-700 text-gray-300'
-                      }`}>
-                        {contact.source}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-400">{contact.lastUpdated}</td>
-                    <td className="p-4">
-                      <div className="flex space-x-2">
-                        <button className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-red-500">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {filteredContacts.length === 0 && (
-            <div className="p-8 text-center text-gray-400">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>Aucun contact trouvé</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'settings' && (
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-          <div className="p-4 border-b border-gray-700">
-            <h2 className="font-semibold">Paramètres de Scraping</h2>
-          </div>
-          <div className="p-6 space-y-6">
-            <div>
-              <h3 className="text-lg font-medium mb-4">Sources de données</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Firecrawl</h4>
-                    <p className="text-sm text-gray-400">Scraping avancé des sites web et réseaux sociaux</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">API de veille média</h4>
-                    <p className="text-sm text-gray-400">Actualités et communiqués de presse</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Apollo</h4>
-                    <p className="text-sm text-gray-400">Identification des contacts professionnels</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">LinkedIn</h4>
-                    <p className="text-sm text-gray-400">Recherche de contacts et d'actualités</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium mb-4">Fréquence de scraping</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gray-700 rounded-lg border border-emerald-600">
-                  <div className="flex items-center mb-2">
-                    <input type="radio" id="daily" name="frequency" className="mr-2" checked />
-                    <label htmlFor="daily" className="font-medium">Quotidien</label>
-                  </div>
-                  <p className="text-sm text-gray-400">Mise à jour quotidienne des données</p>
-                </div>
-                <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
-                  <div className="flex items-center mb-2">
-                    <input type="radio" id="weekly" name="frequency" className="mr-2" />
-                    <label htmlFor="weekly" className="font-medium">Hebdomadaire</label>
-                  </div>
-                  <p className="text-sm text-gray-400">Mise à jour chaque semaine</p>
-                </div>
-                <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
-                  <div className="flex items-center mb-2">
-                    <input type="radio" id="manual" name="frequency" className="mr-2" />
-                    <label htmlFor="manual" className="font-medium">Manuel</label>
-                  </div>
-                  <p className="text-sm text-gray-400">Uniquement sur demande</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium mb-4">Intégration avec Airtable</h3>
-              <div className="p-4 bg-gray-700 rounded-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Synchronisation automatique</h4>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <Database className="w-5 h-5 mr-2 text-purple-400" />
-                  <span className="text-sm text-gray-300">Connecté à Airtable</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
-              <button className="btn-outline py-2 px-4">
-                Annuler
-              </button>
-              <button className="btn-primary py-2 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
-                Enregistrer les paramètres
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Scraping; 
+              <tbody className="divide-y divide-gray-700">
+                {filteredBrands.length > 0 ? (
+                  filteredBrands.map(brand => (
+                    <tr key={brand.id} className="hover:bg-gray-750">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Building2 className="w-5 h-5 mr-2 text-emerald-400" />
+                          <div>
+                            <div className="font-medium">{brand.name}</div>
+                            {brand.website && (
+                              <a href={brand.website} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:underline flex items-center">
+                                {brand.website} <ExternalLink className="w-3 h-3 ml-1" />
+                              </a>
+                            )}
+                          </div>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactEmail && (
+                              <div className="text-sm">{brand.contactEmail}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.contactPhone}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {brand.contactPhone && (
+                              <div className="text-sm">{brand.

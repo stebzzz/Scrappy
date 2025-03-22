@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../context/AppContext';
+import { useCampaigns } from '../hooks/useCampaigns';
 import { 
   LayoutGrid, 
   Search, 
@@ -20,11 +22,14 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader
 } from 'lucide-react';
+import CreateCampaignModal from '../components/campaigns/CreateCampaignModal';
 
-interface Campaign {
-  id: number;
+// Interface pour les données d'affichage des campagnes
+interface CampaignDisplay {
+  id: string;
   name: string;
   brand: string;
   brandLogo: string;
@@ -48,14 +53,87 @@ interface Campaign {
 const Campaigns = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<CampaignDisplay | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [sortField, setSortField] = useState<string>('startDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Utiliser le hook de campagnes et le contexte de l'application
+  const { campaigns, isLoading, error, refreshCampaigns, createCampaign } = useCampaigns();
+  const { brands, influencers } = useAppContext();
+  
+  // Convertir les campagnes de la base de données en format d'affichage
+  const [displayCampaigns, setDisplayCampaigns] = useState<CampaignDisplay[]>([]);
 
-// Données fictives pour les campagnes
-  const mockCampaigns: Campaign[] = [
+// Effet pour convertir les campagnes de la base de données en format d'affichage
+  useEffect(() => {
+    if (campaigns.length > 0) {
+      const formattedCampaigns: CampaignDisplay[] = campaigns.map(campaign => {
+        // Trouver la marque associée
+        const brand = brands.find(b => b.id === campaign.brandId) || { name: 'Marque inconnue' };
+        
+        // Trouver les influenceurs associés
+        const campaignInfluencers = influencers.filter(inf => 
+          campaign.influencerIds?.includes(inf.id || '')
+        );
+        
+        // Calculer la progression
+        const now = new Date();
+        const start = campaign.startDate instanceof Date ? campaign.startDate : new Date(campaign.startDate);
+        const end = campaign.endDate instanceof Date ? campaign.endDate : new Date(campaign.endDate);
+        
+        let progress = 0;
+        let status: 'En cours' | 'Planifiée' | 'Complétée' | 'En pause' = 'Planifiée';
+        
+        if (now > end) {
+          progress = 100;
+          status = 'Complétée';
+        } else if (now > start) {
+          const total = end.getTime() - start.getTime();
+          const current = now.getTime() - start.getTime();
+          progress = Math.round((current / total) * 100);
+          status = 'En cours';
+        }
+        
+        // Convertir les dates en format français
+        const formatDate = (date: Date) => {
+          return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+        
+        return {
+          id: campaign.id || '',
+          name: campaign.name,
+          brand: brand.name,
+          brandLogo: 'https://via.placeholder.com/50', // Placeholder pour le logo
+          startDate: formatDate(start),
+          endDate: formatDate(end),
+          budget: `€${campaign.budget?.toLocaleString() || '0'}`,
+          status,
+          influencers: {
+            count: campaignInfluencers.length,
+            list: campaignInfluencers.map(inf => inf.name)
+          },
+          platforms: ['Instagram', 'TikTok'], // À remplacer par des données réelles
+          kpis: {
+            reach: campaign.metrics?.impressions?.toLocaleString() + 'K' || '0',
+            engagement: campaign.metrics?.engagement || 0,
+            conversion: campaign.metrics?.conversions ? `${campaign.metrics.conversions}%` : '0%'
+          },
+          progress
+        };
+      });
+      
+      setDisplayCampaigns(formattedCampaigns);
+    } else {
+      // Si pas de campagnes, utiliser des données fictives pour l'exemple
+      setDisplayCampaigns(mockCampaigns);
+    }
+  }, [campaigns, brands, influencers]);
+  
+  // Données fictives pour les campagnes (utilisées si pas de données réelles)
+  const mockCampaigns: CampaignDisplay[] = [
   {
     id: 1,
       name: "Collection Été 2025",
@@ -226,8 +304,20 @@ const Campaigns = () => {
     }
   ];
 
+  // Gérer la création d'une nouvelle campagne
+  const handleCreateCampaign = async (campaignData: any) => {
+    try {
+      await createCampaign(campaignData);
+      await refreshCampaigns();
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Erreur lors de la création de la campagne:', error);
+      alert(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
+  };
+  
   // Filtrer les campagnes en fonction du terme de recherche et du statut
-  const filteredCampaigns = mockCampaigns.filter(campaign =>
+  const filteredCampaigns = displayCampaigns.filter(campaign =>
     (campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     campaign.brand.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (filterStatus === null || campaign.status === filterStatus) &&
@@ -299,7 +389,10 @@ const Campaigns = () => {
           Campagnes
         </h1>
         <div className="flex space-x-2">
-          <button className="btn-primary flex items-center">
+          <button 
+            className="btn-primary flex items-center"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle Campagne
           </button>
@@ -643,7 +736,7 @@ const Campaigns = () => {
       )}
 
       <div className="mt-6 flex justify-between items-center text-sm text-gray-400">
-        <div>Affichage de {sortedCampaigns.length} sur {mockCampaigns.length} campagnes</div>
+        <div>Affichage de {sortedCampaigns.length} sur {displayCampaigns.length} campagnes</div>
         <div className="flex items-center space-x-2">
           <button className="px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600 disabled:opacity-50" disabled>Précédent</button>
           <button className="px-3 py-1 bg-gray-600 rounded-md text-white">1</button>
@@ -651,6 +744,26 @@ const Campaigns = () => {
           <button className="px-3 py-1 bg-gray-700 rounded-md hover:bg-gray-600">Suivant</button>
         </div>
       </div>
+      
+      {/* Afficher un indicateur de chargement si les données sont en cours de chargement */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl flex items-center space-x-4">
+            <Loader className="w-8 h-8 text-orange-500 animate-spin" />
+            <span className="text-white font-medium">Chargement des campagnes...</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de création de campagne */}
+      <CreateCampaignModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateCampaign}
+        brands={brands}
+        influencers={influencers}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
