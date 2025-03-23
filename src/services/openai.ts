@@ -1,8 +1,9 @@
 // OpenAI API Service
 import axios from 'axios';
+import { API_KEYS } from '../config/api-keys';
 
-// Nouvelle clé API valide
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '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'; 
+// Utilisation de la variable d'environnement
+const OPENAI_API_KEY = API_KEYS.openai;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 /**
@@ -42,19 +43,9 @@ export const generateContent = async (
     // Si c'est une erreur d'authentification
     if (error.response?.status === 401) {
       console.error('⚠️ ERREUR D\'AUTHENTIFICATION OpenAI: Votre clé API est invalide ou a expiré');
-      // Renvoyer un message simulé pour continuer le développement
-      return JSON.stringify({
-        contactEmail: ["contact@example.com"],
-        contactPhone: ["+33 1 23 45 67 89"],
-        socialLinks: ["https://facebook.com/example"],
-        newsItems: [
-          {
-            newsTitle: "Simulation - Nouvelle API disponible",
-            newsDate: "01/05/2023",
-            newsContent: "Ceci est une simulation car la clé API OpenAI n'est pas valide."
-          }
-        ]
-      });
+      console.error('⚠️ Vérifiez votre variable d\'environnement VITE_OPENAI_API_KEY');
+      // Lancer une erreur plus explicite
+      throw new Error('Clé API OpenAI invalide. Vérifiez votre fichier .env.local');
     }
     
     throw new Error('Failed to generate content with OpenAI');

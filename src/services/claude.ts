@@ -1,7 +1,9 @@
 // Claude API Service
 import axios from 'axios';
+import { API_KEYS } from '../config/api-keys';
 
-const CLAUDE_API_KEY = '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';
+// Utilisation de la variable d'environnement
+const CLAUDE_API_KEY = API_KEYS.claude.apiKey || API_KEYS.anthropic;
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
 /**
@@ -17,6 +19,10 @@ export const generateClaudeContent = async (
   temperature: number = 0.7
 ): Promise<string> => {
   try {
+    if (!CLAUDE_API_KEY) {
+      throw new Error('Clé API Claude non configurée. Vérifiez votre fichier .env.local');
+    }
+    
     const response = await axios.post(
       CLAUDE_API_URL,
       {
@@ -35,8 +41,16 @@ export const generateClaudeContent = async (
     );
 
     return response.data.content[0].text;
-  } catch (error) {
-    console.error('Error generating content with Claude:', error);
+  } catch (error: any) {
+    console.error('Erreur Claude:', error.response?.status, error.response?.data);
+    
+    // Si c'est une erreur d'authentification
+    if (error.response?.status === 401) {
+      console.error('⚠️ ERREUR D\'AUTHENTIFICATION Claude: Votre clé API est invalide ou a expiré');
+      console.error('⚠️ Vérifiez vos variables d\'environnement VITE_CLAUDE_API_KEY ou VITE_ANTHROPIC_API_KEY');
+      throw new Error('Clé API Claude invalide. Vérifiez votre fichier .env.local');
+    }
+    
     throw new Error('Failed to generate content with Claude');
   }
 };

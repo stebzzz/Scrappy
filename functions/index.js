@@ -8,6 +8,10 @@ exports.anthropicProxy = functions.https.onRequest((req, res) => {
     try {
       const { apiKey, model, max_tokens, temperature, prompt } = req.body;
       
+      if (!apiKey) {
+        return res.status(400).json({ error: 'API key is required' });
+      }
+      
       const response = await axios.post('https://api.anthropic.com/v1/messages', {
         model: model || 'claude-3-sonnet-20240229',
         max_tokens: max_tokens || 2000,
@@ -25,7 +29,10 @@ exports.anthropicProxy = functions.https.onRequest((req, res) => {
       
       res.json(response.data);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('Anthropic API error:', error.response?.data || error.message);
+      res.status(error.response?.status || 500).json({ 
+        error: error.response?.data || error.message 
+      });
     }
   });
 });
@@ -35,6 +42,10 @@ exports.openaiProxy = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
     try {
       const { apiKey, model, temperature, prompt } = req.body;
+      
+      if (!apiKey) {
+        return res.status(400).json({ error: 'API key is required' });
+      }
       
       const response = await axios.post('https://api.openai.com/v1/chat/completions', {
         model: model || 'gpt-3.5-turbo',
@@ -58,7 +69,10 @@ exports.openaiProxy = functions.https.onRequest((req, res) => {
       
       res.json(response.data);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('OpenAI API error:', error.response?.data || error.message);
+      res.status(error.response?.status || 500).json({ 
+        error: error.response?.data || error.message 
+      });
     }
   });
 }); 

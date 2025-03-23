@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -14,8 +14,14 @@ import NotFound from './pages/NotFound';
 
 // Importation du Provider correcte
 import { AppProvider } from './context/AppContext';
+import { validateApiKeys } from './config/api-keys';
 
 function App() {
+  useEffect(() => {
+    // Vérifier que les clés API sont configurées
+    validateApiKeys();
+  }, []);
+
   return (
     <AppProvider>
       <Routes>

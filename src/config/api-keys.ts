@@ -39,13 +39,35 @@ export const MISTRAL_CONFIG = {
 // Utilisez des variables d'environnement et un backend sécurisé
 
 export const API_KEYS = {
-  // Utilisez les variables d'environnement en production
-  anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || 'sk-ant-votreclefactice',
-  openai: import.meta.env.VITE_OPENAI_API_KEY || 'sk-votreclefactice',
-  claude: CLAUDE_CONFIG,
+  anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+  claude: {
+    apiKey: import.meta.env.VITE_CLAUDE_API_KEY || '',
+    organizationId: import.meta.env.VITE_CLAUDE_ORG_ID || ''
+  },
+  openai: import.meta.env.VITE_OPENAI_API_KEY || '',
   firecrawl: FIRECRAWL_CONFIG,
   gemini: GEMINI_CONFIG,
   mistral: MISTRAL_CONFIG,
+};
+
+// Fonction pour vérifier que les clés API sont configurées
+export const validateApiKeys = (): boolean => {
+  const missingKeys = [];
+  
+  if (!API_KEYS.anthropic && !API_KEYS.claude.apiKey) {
+    missingKeys.push('VITE_ANTHROPIC_API_KEY ou VITE_CLAUDE_API_KEY');
+  }
+  
+  if (!API_KEYS.openai) {
+    missingKeys.push('VITE_OPENAI_API_KEY');
+  }
+  
+  if (missingKeys.length > 0) {
+    console.warn(`⚠️ Les clés API suivantes sont manquantes : ${missingKeys.join(', ')}`);
+    return false;
+  }
+  
+  return true;
 };
 
 // Pour la production, ajoutez ces variables dans votre fichier .env:
