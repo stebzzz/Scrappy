@@ -18,8 +18,12 @@ import {
   Instagram,
   Facebook,
   Twitter,
-  Linkedin
+  Linkedin,
+  Phone,
+  MoreHorizontal,
+  Activity
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Interface pour l'affichage des marques
 interface BrandDisplay {
@@ -39,6 +43,7 @@ interface BrandDisplay {
   email?: string;
   lastCampaign?: string;
   status?: string;
+  contactPhone?: string;
 }
 
 const Brands = () => {
@@ -101,7 +106,8 @@ const Brands = () => {
           contactPerson: brand.contactPerson || 'Contact non spécifié',
           email: brand.contactEmail || '',
           lastCampaign,
-          status: brand.status || 'active'
+          status: brand.status || 'active',
+          contactPhone: brand.contactPhone || ''
         };
       });
       
@@ -150,22 +156,19 @@ const Brands = () => {
           Marques
         </h1>
         <div className="flex space-x-2">
-          <button 
-            className="btn-primary flex items-center"
-            onClick={handleCreateBrand}
-          >
+          <Link to="/brands/new" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle Marque
-          </button>
+          </Link>
           <button 
-            className="btn-secondary flex items-center" 
+            className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center"
             onClick={() => refreshBrands()}
             disabled={isLoading}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Chargement...' : 'Actualiser'}
           </button>
-          <button className="btn-outline flex items-center">
+          <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center">
             <Download className="w-4 h-4 mr-2" />
             Exporter
           </button>
@@ -249,39 +252,47 @@ const Brands = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              <div className="p-3 border-b border-gray-700 flex justify-between items-center">
+                <span className="text-sm font-medium">
+                  {filteredBrands.length} marque{filteredBrands.length !== 1 ? 's' : ''}
+                </span>
+                <button className="text-gray-400 hover:text-white">
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
               <div className="overflow-auto max-h-[calc(100vh-220px)]">
                 {filteredBrands.length > 0 ? (
-                  filteredBrands.map((brand) => (
+                  filteredBrands.map((brandItem) => (
                     <div
-                      key={brand.id}
+                      key={brandItem.id}
                       className={`p-4 border-b border-gray-700 cursor-pointer transition-all hover:bg-gray-700 ${
-                        selectedBrand?.id === brand.id
+                        selectedBrand?.id === brandItem.id
                           ? 'bg-gray-700'
                           : ''
                       }`}
-                      onClick={() => setSelectedBrand(brand)}
+                      onClick={() => setSelectedBrand(brandItem)}
                     >
                       <div className="flex items-center mb-2">
                         <img 
-                          src={brand.logo} 
-                          alt={`Logo ${brand.name}`} 
+                          src={brandItem.logo} 
+                          alt={`Logo ${brandItem.name}`} 
                           className="w-10 h-10 rounded-full mr-3 bg-gray-600"
                         />
                         <div>
-                          <h3 className="font-semibold">{brand.name}</h3>
-                          <span className="text-sm text-gray-400">{brand.industry}</span>
+                          <h3 className="font-semibold">{brandItem.name}</h3>
+                          <span className="text-sm text-gray-400">{brandItem.industry}</span>
                         </div>
                         <span className={`ml-auto px-2 py-1 rounded-full text-xs ${
-                          brand.status === 'active' 
+                          brandItem.status === 'active' 
                             ? 'bg-emerald-900 text-emerald-300' 
                             : 'bg-amber-900 text-amber-300'
                         }`}>
-                          {brand.status === 'active' ? 'Actif' : brand.status === 'inactive' ? 'En pause' : 'En attente'}
+                          {brandItem.status === 'active' ? 'Actif' : brandItem.status === 'inactive' ? 'En pause' : 'En attente'}
                         </span>
                       </div>
                       <div className="text-sm text-gray-400">
-                        <p>Contact: {brand.contactPerson}</p>
-                        <p>Dernière campagne: {brand.lastCampaign}</p>
+                        <p>Contact: {brandItem.contactPerson}</p>
+                        <p>Dernière campagne: {brandItem.lastCampaign}</p>
                       </div>
                     </div>
                   ))
@@ -312,18 +323,15 @@ const Brands = () => {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <button 
-                        className="btn-outline-sm flex items-center"
-                        onClick={() => {
-                          // Implémenter la modification de marque
-                          console.log('Modification de la marque', selectedBrand.id);
-                        }}
+                      <Link 
+                        to={`/brands/edit/${selectedBrand.id}`}
+                        className="px-3 py-1.5 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center"
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         Modifier
-                      </button>
+                      </Link>
                       <button 
-                        className="btn-outline-sm flex items-center text-red-500 hover:text-red-400"
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
                         onClick={() => {
                           if (window.confirm(`Êtes-vous sûr de vouloir supprimer la marque ${selectedBrand.name} ?`)) {
                             deleteBrandById(selectedBrand.id)
@@ -356,20 +364,35 @@ const Brands = () => {
                         {selectedBrand.email && (
                           <div className="flex items-center">
                             <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                            <span>{selectedBrand.email}</span>
+                            <a 
+                              href={`mailto:${selectedBrand.email}`}
+                              className="text-blue-400 hover:underline"
+                            >
+                              {selectedBrand.email}
+                            </a>
                           </div>
                         )}
                         {selectedBrand.website && (
                           <div className="flex items-center">
                             <Globe className="w-4 h-4 text-gray-400 mr-2" />
                             <a 
-                              href={selectedBrand.website.startsWith('http') ? selectedBrand.website : `https://${selectedBrand.website}`} 
+                              href={selectedBrand.website} 
                               target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-blue-400 hover:underline flex items-center"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:underline"
                             >
                               {selectedBrand.website}
-                              <ExternalLink className="w-3 h-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
+                        {selectedBrand.contactPhone && (
+                          <div className="flex items-center">
+                            <Phone className="w-4 h-4 text-gray-400 mr-2" />
+                            <a 
+                              href={`tel:${selectedBrand.contactPhone}`}
+                              className="text-blue-400 hover:underline"
+                            >
+                              {selectedBrand.contactPhone}
                             </a>
                           </div>
                         )}
@@ -434,14 +457,20 @@ const Brands = () => {
                   </div>
                   
                   <div className="flex space-x-3">
-                    <button className="btn-primary flex-1 py-2">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nouvelle campagne
-                    </button>
-                    <button className="btn-outline flex-1 py-2">
+                    <Link 
+                      to={`/brands/${selectedBrand.id}`}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center flex-1"
+                    >
                       <Eye className="w-4 h-4 mr-2" />
-                      Voir toutes les campagnes
-                    </button>
+                      Voir la fiche complète
+                    </Link>
+                    <Link 
+                      to={`/scraping?url=${selectedBrand.website}`}
+                      className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center flex-1"
+                    >
+                      <Globe className="w-4 h-4 mr-2" />
+                      Scanner le site
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -450,13 +479,10 @@ const Brands = () => {
                 <Building2 className="w-16 h-16 mb-4 text-gray-600" />
                 <h3 className="text-xl font-medium mb-2">Aucune marque sélectionnée</h3>
                 <p className="text-gray-400 mb-6">Sélectionnez une marque dans la liste pour voir les détails</p>
-                <button 
-                  className="btn-primary flex items-center"
-                  onClick={handleCreateBrand}
-                >
+                <Link to="/brands/new" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter une nouvelle marque
-                </button>
+                </Link>
               </div>
             )}
           </div>

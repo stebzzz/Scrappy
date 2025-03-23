@@ -3,444 +3,601 @@ import {
   Settings as SettingsIcon, 
   User, 
   Bell, 
+  Shield, 
+  Database, 
+  Globe, 
   Moon, 
   Sun, 
-  Globe, 
-  Shield, 
-  LogOut, 
-  Save,
-  ChevronRight,
-  Check
+  Save, 
+  RotateCcw,
+  Key,
+  MessageSquare
 } from 'lucide-react';
 
-const Settings = () => {
-  const [activeTab, setActiveTab] = useState('profile');
-  const [darkMode, setDarkMode] = useState(true);
-  const [language, setLanguage] = useState('fr');
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [appNotifications, setAppNotifications] = useState(true);
-  const [marketingEmails, setMarketingEmails] = useState(false);
+const Settings: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>('profile');
+  const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+  const [language, setLanguage] = useState<string>('fr');
   
-  // Données fictives pour l'utilisateur
-  const user = {
-    name: "Thomas Dubois",
-    email: "thomas.dubois@example.com",
-    role: "Administrateur",
-    avatar: "https://via.placeholder.com/100",
-    createdAt: "15/03/2023"
+  // Utiliser des placeholders au lieu de process.env qui n'est pas disponible
+  const [apiKeys, setApiKeys] = useState({
+    openai: '••••••••••••••••••••••••••',
+    firebase: '••••••••••••••••••••••••••',
+    algolia: '••••••••••••••••••••••••••'
+  });
+  
+  // Gérer les mises à jour des clés API
+  const handleApiKeyChange = (keyName: string, value: string) => {
+    setApiKeys({
+      ...apiKeys,
+      [keyName]: value
+    });
   };
 
   return (
-    <div className="p-6 text-white">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold flex items-center">
-          <SettingsIcon className="w-6 h-6 mr-2 text-gray-400" />
-          Paramètres
-        </h1>
-        <button className="btn-primary flex items-center">
-          <Save className="w-4 h-4 mr-2" />
-          Enregistrer les modifications
-        </button>
-      </div>
+    <div className="bg-gray-900 text-white min-h-screen p-6">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-6">
+          <h1 className="text-2xl font-bold mb-2 flex items-center text-blue-500">
+            <SettingsIcon className="mr-2" />
+            Paramètres
+          </h1>
+          <p className="text-gray-400">Configurez votre expérience utilisateur et vos préférences</p>
+        </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar de navigation */}
-        <div className="lg:col-span-1">
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex items-center">
-                <img 
-                  src={user.avatar} 
-                  alt={user.name} 
-                  className="w-10 h-10 rounded-full mr-3 bg-gray-600"
-                />
-                <div>
-                  <h3 className="font-semibold">{user.name}</h3>
-                  <span className="text-sm text-gray-400">{user.role}</span>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="col-span-1">
+            <div className="bg-gray-800 rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-gray-700">
+                <h3 className="font-medium text-white">Catégories</h3>
               </div>
+
+              <nav className="p-2">
+                <button 
+                  onClick={() => setActiveTab('profile')}
+                  className={`w-full flex items-center p-3 rounded-lg text-left ${
+                    activeTab === 'profile' 
+                      ? 'bg-blue-500/20 text-blue-400' 
+                      : 'text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <User size={18} className="mr-3" />
+                  Profil utilisateur
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('interface')}
+                  className={`w-full flex items-center p-3 rounded-lg text-left ${
+                    activeTab === 'interface' 
+                      ? 'bg-blue-500/20 text-blue-400' 
+                      : 'text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <Globe size={18} className="mr-3" />
+                  Interface
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('notifications')}
+                  className={`w-full flex items-center p-3 rounded-lg text-left ${
+                    activeTab === 'notifications' 
+                      ? 'bg-blue-500/20 text-blue-400' 
+                      : 'text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <Bell size={18} className="mr-3" />
+                  Notifications
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('api')}
+                  className={`w-full flex items-center p-3 rounded-lg text-left ${
+                    activeTab === 'api' 
+                      ? 'bg-blue-500/20 text-blue-400' 
+                      : 'text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <Key size={18} className="mr-3" />
+                  Clés API
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('data')}
+                  className={`w-full flex items-center p-3 rounded-lg text-left ${
+                    activeTab === 'data' 
+                      ? 'bg-blue-500/20 text-blue-400' 
+                      : 'text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <Database size={18} className="mr-3" />
+                  Données
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('security')}
+                  className={`w-full flex items-center p-3 rounded-lg text-left ${
+                    activeTab === 'security' 
+                      ? 'bg-blue-500/20 text-blue-400' 
+                      : 'text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <Shield size={18} className="mr-3" />
+                  Sécurité
+                </button>
+              </nav>
             </div>
-            <div className="p-2">
-              <button 
-                className={`w-full text-left p-3 rounded-lg flex items-center mb-1 ${activeTab === 'profile' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
-                onClick={() => setActiveTab('profile')}
-              >
-                <User className="w-5 h-5 mr-3 text-blue-400" />
-                Profil
-              </button>
-              <button 
-                className={`w-full text-left p-3 rounded-lg flex items-center mb-1 ${activeTab === 'interface' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
-                onClick={() => setActiveTab('interface')}
-              >
-                <Moon className="w-5 h-5 mr-3 text-purple-400" />
-                Interface
-              </button>
-              <button 
-                className={`w-full text-left p-3 rounded-lg flex items-center mb-1 ${activeTab === 'notifications' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
-                onClick={() => setActiveTab('notifications')}
-              >
-                <Bell className="w-5 h-5 mr-3 text-amber-400" />
-                Notifications
-              </button>
-              <button 
-                className={`w-full text-left p-3 rounded-lg flex items-center mb-1 ${activeTab === 'security' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}
-                onClick={() => setActiveTab('security')}
-              >
-                <Shield className="w-5 h-5 mr-3 text-emerald-400" />
-                Sécurité
-              </button>
-              <div className="border-t border-gray-700 my-2 pt-2">
-                <button className="w-full text-left p-3 rounded-lg flex items-center text-red-400 hover:bg-gray-700">
-                  <LogOut className="w-5 h-5 mr-3" />
-                  Déconnexion
+          </div>
+
+          {/* Main content */}
+          <div className="col-span-1 lg:col-span-3">
+            <div className="bg-gray-800 rounded-xl p-6">
+              {activeTab === 'profile' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Profil utilisateur</h2>
+                  
+                  <div className="mb-6 flex items-start">
+                    <div className="mr-4">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">SZ</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium">Stéphane Zayat</h3>
+                      <p className="text-gray-400">Administrateur</p>
+                      <button className="mt-2 text-sm text-blue-400 hover:text-blue-300">
+                        Modifier la photo de profil
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Nom complet
+                      </label>
+                      <input 
+                        type="text"
+                        defaultValue="Stéphane Zayat"
+                        className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Email
+                      </label>
+                      <input 
+                        type="email"
+                        defaultValue="stephane@scrappy.fr"
+                        className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Rôle
+                      </label>
+                      <select className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white">
+                        <option>Administrateur</option>
+                        <option>Manager</option>
+                        <option>Utilisateur</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Bio
+                      </label>
+                      <textarea 
+                        rows={4}
+                        defaultValue="Responsable marketing digital chez Scrappy."
+                        className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'interface' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Préférences d'interface</h2>
+                  
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">Mode sombre</h3>
+                        <p className="text-sm text-gray-400">Activer le thème sombre pour l'interface</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={darkMode}
+                          onChange={() => setDarkMode(!darkMode)}
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        <span className="ms-3 text-sm font-medium text-gray-300 flex">
+                          {darkMode ? <Moon size={16} className="mr-1" /> : <Sun size={16} className="mr-1" />}
+                          {darkMode ? 'Activé' : 'Désactivé'}
+                        </span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <h3 className="font-medium mb-2">Langue</h3>
+                      <select 
+                        className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value)}
+                      >
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="de">Deutsch</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <h3 className="font-medium mb-2">Taille de la police</h3>
+                      <div className="flex space-x-2">
+                        <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">Petite</button>
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">Normale</button>
+                        <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">Grande</button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-medium mb-2">Disposition du tableau de bord</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="border border-blue-500 bg-gray-700 rounded-lg p-2 flex items-center justify-center">
+                          <div className="bg-gray-800 w-full h-24 rounded-lg"></div>
+                        </div>
+                        <div className="border border-gray-600 bg-gray-700 rounded-lg p-2 flex items-center justify-center">
+                          <div className="bg-gray-800 w-full h-24 rounded-lg"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'notifications' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Paramètres de notifications</h2>
+                  
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">Notifications</h3>
+                        <p className="text-sm text-gray-400">Activer les notifications dans l'application</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={notificationsEnabled}
+                          onChange={() => setNotificationsEnabled(!notificationsEnabled)}
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      </label>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4">
+                      <h3 className="font-medium mb-3">Recevoir des notifications pour :</h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center">
+                          <input type="checkbox" checked className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Nouvelles campagnes</label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input type="checkbox" checked className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Mises à jour des influenceurs</label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input type="checkbox" className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Rapports de performance</label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input type="checkbox" checked className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Messages des utilisateurs</label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input type="checkbox" checked className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Alertes système</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4">
+                      <h3 className="font-medium mb-3">Méthodes de notification</h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center">
+                          <input type="checkbox" checked className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Notifications par email</label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input type="checkbox" checked className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Notifications dans l'application</label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input type="checkbox" className="w-4 h-4 text-blue-500 border-gray-600 rounded bg-gray-700" />
+                          <label className="ml-2 text-sm text-gray-300">Notifications push</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'api' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Clés API</h2>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Clé API OpenAI
+                      </label>
+                      <div className="flex">
+                        <input 
+                          type="password"
+                          value={apiKeys.openai}
+                          onChange={(e) => handleApiKeyChange('openai', e.target.value)}
+                          className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded-l text-white"
+                        />
+                        <button 
+                          className="bg-gray-600 px-3 rounded-r border border-gray-600 border-l-0"
+                          onClick={() => handleApiKeyChange('openai', '')}
+                        >
+                          Effacer
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Utilisée pour les fonctionnalités d'IA et la génération d'emails
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Clé API Firebase
+                      </label>
+                      <div className="flex">
+                        <input 
+                          type="password"
+                          value={apiKeys.firebase}
+                          onChange={(e) => handleApiKeyChange('firebase', e.target.value)}
+                          className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded-l text-white"
+                        />
+                        <button 
+                          className="bg-gray-600 px-3 rounded-r border border-gray-600 border-l-0"
+                          onClick={() => handleApiKeyChange('firebase', '')}
+                        >
+                          Effacer
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Utilisée pour la base de données et l'authentification
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Clé API Algolia
+                      </label>
+                      <div className="flex">
+                        <input 
+                          type="password"
+                          value={apiKeys.algolia}
+                          onChange={(e) => handleApiKeyChange('algolia', e.target.value)}
+                          className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded-l text-white"
+                        />
+                        <button 
+                          className="bg-gray-600 px-3 rounded-r border border-gray-600 border-l-0"
+                          onClick={() => handleApiKeyChange('algolia', '')}
+                        >
+                          Effacer
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Utilisée pour la recherche rapide
+                      </p>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4 mt-4">
+                      <h3 className="font-medium mb-2">Connexion avec d'autres services</h3>
+                      <div className="space-y-3">
+                        <button className="px-4 py-3 bg-blue-500/20 text-blue-400 rounded-lg w-full text-left hover:bg-blue-500/30 flex items-center">
+                          <MessageSquare size={18} className="mr-3" />
+                          Connecter à Slack
+                        </button>
+                        <button className="px-4 py-3 bg-gray-700 text-gray-400 rounded-lg w-full text-left hover:bg-gray-600 flex items-center">
+                          <Database size={18} className="mr-3" />
+                          Connecter à Airtable
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'data' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Gestion des données</h2>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-medium mb-2">Exportation des données</h3>
+                      <p className="text-sm text-gray-400 mb-2">
+                        Téléchargez vos données sous forme de fichier JSON ou CSV
+                      </p>
+                      <div className="flex space-x-2">
+                        <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                          Exporter en JSON
+                        </button>
+                        <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">
+                          Exporter en CSV
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4">
+                      <h3 className="font-medium mb-2">Importation des données</h3>
+                      <p className="text-sm text-gray-400 mb-2">
+                        Importez des données à partir de fichiers externes
+                      </p>
+                      <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                        <p className="text-gray-400 mb-2">Glissez-déposez un fichier ici ou</p>
+                        <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">
+                          Parcourir
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4">
+                      <h3 className="font-medium mb-2 text-red-400">Zone de danger</h3>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Ces actions peuvent entraîner une perte de données. Soyez prudent.
+                      </p>
+                      <div className="space-y-3">
+                        <button className="px-4 py-2 bg-yellow-600/30 text-yellow-400 rounded-lg w-full text-left hover:bg-yellow-600/40">
+                          Effacer le cache de l'application
+                        </button>
+                        <button className="px-4 py-2 bg-red-600/30 text-red-400 rounded-lg w-full text-left hover:bg-red-600/40">
+                          Supprimer toutes les données
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'security' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Sécurité</h2>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-medium mb-3">Changement de mot de passe</h3>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            Mot de passe actuel
+                          </label>
+                          <input 
+                            type="password"
+                            placeholder="••••••••••••"
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            Nouveau mot de passe
+                          </label>
+                          <input 
+                            type="password"
+                            placeholder="••••••••••••"
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            Confirmer le mot de passe
+                          </label>
+                          <input 
+                            type="password"
+                            placeholder="••••••••••••"
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                          />
+                        </div>
+
+                        <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                          Mettre à jour le mot de passe
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4">
+                      <h3 className="font-medium mb-3">Authentification à deux facteurs</h3>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-gray-300">Authentification à deux facteurs (2FA)</p>
+                          <p className="text-sm text-gray-400">Sécurisez votre compte avec 2FA</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                      </div>
+
+                      <div className="mt-4">
+                        <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">
+                          Configurer la 2FA
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-4">
+                      <h3 className="font-medium mb-3">Sessions</h3>
+                      
+                      <div className="bg-gray-700 rounded-lg p-3 mb-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-white font-medium">Chrome sur MacOS</p>
+                            <p className="text-xs text-gray-400">Paris, France • Actif maintenant</p>
+                          </div>
+                          <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Actuelle</span>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-700 rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-white font-medium">iPhone 13</p>
+                            <p className="text-xs text-gray-400">Lyon, France • Il y a 2 jours</p>
+                          </div>
+                          <button className="text-red-400 text-xs hover:underline">
+                            Déconnecter
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <button className="mt-3 text-blue-400 hover:underline text-sm">
+                        Déconnecter toutes les autres sessions
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div className="mt-8 pt-6 border-t border-gray-700 flex justify-between">
+                <button className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg flex items-center hover:bg-gray-600">
+                  <RotateCcw size={16} className="mr-2" />
+                  Réinitialiser
+                </button>
+                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center hover:bg-blue-600">
+                  <Save size={16} className="mr-2" />
+                  Enregistrer les modifications
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Contenu principal */}
-        <div className="lg:col-span-3">
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            {/* Onglet Profil */}
-            {activeTab === 'profile' && (
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-6">Informations du profil</h2>
-                
-                <div className="mb-8 flex items-center">
-                  <img 
-                    src={user.avatar} 
-                    alt={user.name} 
-                    className="w-24 h-24 rounded-full mr-6 bg-gray-600"
-                  />
-                  <div>
-                    <button className="btn-outline-sm mb-2">Changer l'avatar</button>
-                    <p className="text-sm text-gray-400">JPG, GIF ou PNG. 1MB maximum.</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Nom complet</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      defaultValue={user.name}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Adresse email</label>
-                    <input 
-                      type="email" 
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      defaultValue={user.email}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Rôle</label>
-                    <select className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option>Administrateur</option>
-                      <option>Gestionnaire</option>
-                      <option>Utilisateur</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Date d'inscription</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      defaultValue={user.createdAt}
-                      disabled
-                    />
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Bio</label>
-                  <textarea 
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-                    placeholder="Écrivez quelques mots à propos de vous..."
-                  ></textarea>
-                </div>
-                
-                <div className="flex justify-end">
-                  <button className="btn-primary">Mettre à jour le profil</button>
-                </div>
-              </div>
-            )}
-            
-            {/* Onglet Interface */}
-            {activeTab === 'interface' && (
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-6">Préférences d'interface</h2>
-                
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="bg-gray-600 p-2 rounded-lg mr-4">
-                        {darkMode ? <Moon className="w-6 h-6 text-purple-400" /> : <Sun className="w-6 h-6 text-amber-400" />}
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Mode sombre</h3>
-                        <p className="text-sm text-gray-400">Basculer entre le mode clair et sombre</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={darkMode}
-                        onChange={() => setDarkMode(!darkMode)}
-                      />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="bg-gray-600 p-2 rounded-lg mr-4">
-                        <Globe className="w-6 h-6 text-green-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Langue</h3>
-                        <p className="text-sm text-gray-400">Choisir la langue de l'interface</p>
-                      </div>
-                    </div>
-                    <select 
-                      className="bg-gray-600 border border-gray-500 rounded-lg px-3 py-2"
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                    >
-                      <option value="fr">Français</option>
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="de">Deutsch</option>
-                    </select>
-                  </div>
-                  
-                  <div className="p-4 bg-gray-700 rounded-lg">
-                    <h3 className="font-medium mb-3">Disposition du tableau de bord</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="border-2 border-blue-500 p-2 rounded-lg bg-gray-600 flex items-center justify-center">
-                        <div className="w-full">
-                          <div className="h-2 bg-gray-500 rounded mb-1"></div>
-                          <div className="grid grid-cols-2 gap-1">
-                            <div className="h-10 bg-gray-500 rounded"></div>
-                            <div className="h-10 bg-gray-500 rounded"></div>
-                          </div>
-                          <div className="mt-1 h-6 bg-gray-500 rounded"></div>
-                        </div>
-                        <div className="absolute">
-                          <Check className="w-6 h-6 text-blue-500" />
-                        </div>
-                      </div>
-                      <div className="border-2 border-gray-600 p-2 rounded-lg bg-gray-600 hover:border-blue-500 cursor-pointer">
-                        <div className="h-2 bg-gray-500 rounded mb-1"></div>
-                        <div className="grid grid-cols-3 gap-1">
-                          <div className="h-10 bg-gray-500 rounded"></div>
-                          <div className="h-10 bg-gray-500 rounded"></div>
-                          <div className="h-10 bg-gray-500 rounded"></div>
-                        </div>
-                        <div className="mt-1 h-6 bg-gray-500 rounded"></div>
-                      </div>
-                      <div className="border-2 border-gray-600 p-2 rounded-lg bg-gray-600 hover:border-blue-500 cursor-pointer">
-                        <div className="h-2 bg-gray-500 rounded mb-1"></div>
-                        <div className="h-10 bg-gray-500 rounded mb-1"></div>
-                        <div className="grid grid-cols-2 gap-1">
-                          <div className="h-6 bg-gray-500 rounded"></div>
-                          <div className="h-6 bg-gray-500 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Onglet Notifications */}
-            {activeTab === 'notifications' && (
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-6">Préférences de notifications</h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Notifications par email</h3>
-                      <p className="text-sm text-gray-400">Recevoir des notifications par email</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={emailNotifications}
-                        onChange={() => setEmailNotifications(!emailNotifications)}
-                      />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Notifications dans l'application</h3>
-                      <p className="text-sm text-gray-400">Recevoir des notifications dans l'application</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={appNotifications}
-                        onChange={() => setAppNotifications(!appNotifications)}
-                      />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Emails marketing</h3>
-                      <p className="text-sm text-gray-400">Recevoir des emails sur les nouvelles fonctionnalités et offres</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={marketingEmails}
-                        onChange={() => setMarketingEmails(!marketingEmails)}
-                      />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <h3 className="font-medium mb-4">Types de notifications</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                      <span>Nouvelles campagnes</span>
-                      <div className="flex space-x-2">
-                        <label className="inline-flex items-center">
-                          <input type="checkbox" className="form-checkbox h-4 w-4 text-blue-500 bg-gray-600 border-gray-500 rounded" checked />
-                          <span className="ml-2 text-sm text-gray-400">Email</span>
-                        </label>
-                        <label className="inline-flex items-center">
-                          <input type="checkbox" className="form-checkbox h-4 w-4 text-blue-500 bg-gray-600 border-gray-500 rounded" checked />
-                          <span className="ml-2 text-sm text-gray-400">App</span>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                      <span>Nouveaux messages</span>
-                      <div className="flex space-x-2">
-                        <label className="inline-flex items-center">
-                          <input type="checkbox" className="form-checkbox h-4 w-4 text-blue-500 bg-gray-600 border-gray-500 rounded" checked />
-                          <span className="ml-2 text-sm text-gray-400">Email</span>
-                        </label>
-                        <label className="inline-flex items-center">
-                          <input type="checkbox" className="form-checkbox h-4 w-4 text-blue-500 bg-gray-600 border-gray-500 rounded" checked />
-                          <span className="ml-2 text-sm text-gray-400">App</span>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                      <span>Rapports hebdomadaires</span>
-                      <div className="flex space-x-2">
-                        <label className="inline-flex items-center">
-                          <input type="checkbox" className="form-checkbox h-4 w-4 text-blue-500 bg-gray-600 border-gray-500 rounded" checked />
-                          <span className="ml-2 text-sm text-gray-400">Email</span>
-                        </label>
-                        <label className="inline-flex items-center">
-                          <input type="checkbox" className="form-checkbox h-4 w-4 text-blue-500 bg-gray-600 border-gray-500 rounded" />
-                          <span className="ml-2 text-sm text-gray-400">App</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Onglet Sécurité */}
-            {activeTab === 'security' && (
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-6">Paramètres de sécurité</h2>
-                
-                <div className="mb-6">
-                  <h3 className="font-medium mb-4">Changer le mot de passe</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">Mot de passe actuel</label>
-                      <input 
-                        type="password" 
-                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">Nouveau mot de passe</label>
-                      <input 
-                        type="password" 
-                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">Confirmer le nouveau mot de passe</label>
-                      <input 
-                        type="password" 
-                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <button className="btn-primary">Mettre à jour le mot de passe</button>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-700 pt-6 mb-6">
-                  <h3 className="font-medium mb-4">Authentification à deux facteurs</h3>
-                  <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg mb-4">
-                    <div>
-                      <h4 className="font-medium">Activer l'authentification à deux facteurs</h4>
-                      <p className="text-sm text-gray-400">Ajouter une couche de sécurité supplémentaire à votre compte</p>
-                    </div>
-                    <button className="btn-outline-sm">Configurer</button>
-                  </div>
-                  <p className="text-sm text-gray-400">
-                    L'authentification à deux facteurs ajoute une couche de sécurité supplémentaire à votre compte en exigeant plus qu'un simple mot de passe pour vous connecter.
-                  </p>
-                </div>
-                
-                <div className="border-t border-gray-700 pt-6">
-                  <h3 className="font-medium mb-4">Sessions actives</h3>
-                  <div className="space-y-3">
-                    <div className="p-4 bg-gray-700 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">MacBook Pro - Chrome</h4>
-                          <p className="text-sm text-gray-400">Paris, France • Actif maintenant</p>
-                        </div>
-                        <span className="px-2 py-1 bg-emerald-900 text-emerald-300 text-xs rounded-full">Actuel</span>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-gray-700 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">iPhone 13 - Application mobile</h4>
-                          <p className="text-sm text-gray-400">Paris, France • Dernière activité il y a 2 heures</p>
-                        </div>
-                        <button className="text-sm text-red-400 hover:text-red-300">Déconnecter</button>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-gray-700 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">iPad - Safari</h4>
-                          <p className="text-sm text-gray-400">Lyon, France • Dernière activité il y a 5 jours</p>
-                        </div>
-                        <button className="text-sm text-red-400 hover:text-red-300">Déconnecter</button>
-                      </div>
-                    </div>
-                  </div>
-                  <button className="mt-4 text-red-400 hover:text-red-300 text-sm font-medium">Déconnecter toutes les autres sessions</button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

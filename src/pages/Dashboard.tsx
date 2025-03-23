@@ -1,325 +1,544 @@
-import React, { useState } from 'react';
-import { 
-  BarChart, 
-  Mail, 
-  Users, 
-  Building2, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  RefreshCw,
-  Bot,
-  Globe,
-  Zap,
-  Send,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Database,
-  Search
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, TrendingUp, Users, Building2, 
+  Mail, Search, Zap, Layers, Activity, Calendar, Settings, Bell, Clock, ArrowUpRight, 
+  ChevronRight, Plus, ArrowRight, CheckCircle
 } from 'lucide-react';
+import { 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
+} from 'recharts';
+import { useTheme } from '../context/ThemeContext';
+import { getBrandStatistics, getLatestScrapingResults } from '../services/database';
 
-const Dashboard = () => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isScrapingActive, setIsScrapingActive] = useState(false);
+// Données factices pour les graphiques
+const campaignPerformanceData = [
+  { name: 'Jan', engagement: 3800, clicks: 2500, reach: 7000 },
+  { name: 'Fév', engagement: 4200, clicks: 2700, reach: 8000 },
+  { name: 'Mar', engagement: 3900, clicks: 2400, reach: 7500 },
+  { name: 'Avr', engagement: 4500, clicks: 3100, reach: 9000 },
+  { name: 'Mai', engagement: 5000, clicks: 3400, reach: 10000 },
+  { name: 'Juin', engagement: 4800, clicks: 3300, reach: 9700 },
+];
 
-  const handleGenerateEmails = () => {
-    setIsGenerating(true);
-    // Simuler une génération d'emails
-    setTimeout(() => {
-      setIsGenerating(false);
-    }, 2000);
+const industriesData = [
+  { name: 'Mode', value: 42 },
+  { name: 'Beauté', value: 28 },
+  { name: 'Tech', value: 18 },
+  { name: 'Alimentation', value: 15 },
+  { name: 'Sport', value: 12 },
+  { name: 'Voyage', value: 8 },
+];
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+interface DashboardCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  trend?: string;
+  trendUp?: boolean;
+  color: string;
+  onClick?: () => void;
+}
+
+const DashboardCard: React.FC<DashboardCardProps> = ({
+  title, value, icon, trend, trendUp, color, onClick
+}) => (
+  <div 
+    className={`bg-gradient-to-br ${color} rounded-xl p-6 shadow-lg hover:shadow-xl transition-all cursor-pointer animate-fadein`}
+    onClick={onClick}
+  >
+    <div className="flex justify-between items-start">
+      <div>
+        <h3 className="text-white text-lg font-bold mb-1">{value}</h3>
+        <p className="text-white/80 text-sm">{title}</p>
+        {trend && (
+          <div className={`flex items-center mt-3 text-xs ${trendUp ? 'text-green-300' : 'text-red-300'}`}>
+            {trendUp ? <TrendingUp size={14} className="mr-1" /> : <TrendingUp size={14} className="mr-1 transform rotate-180" />}
+            {trend}
+          </div>
+        )}
+      </div>
+      <div className="bg-white/20 p-3 rounded-lg">
+        {icon}
+      </div>
+    </div>
+  </div>
+);
+
+interface TaskItemProps {
+  title: string;
+  dueDate: string;
+  priority: 'high' | 'medium' | 'low';
+  completed: boolean;
+  onToggle: () => void;
+}
+
+const TaskItem: React.FC<TaskItemProps> = ({ title, dueDate, priority, completed, onToggle }) => {
+  const priorityClasses = {
+    high: 'bg-red-400/20 text-red-300',
+    medium: 'bg-amber-400/20 text-amber-300',
+    low: 'bg-blue-400/20 text-blue-300'
   };
-
-  const handleStartScraping = () => {
-    setIsScrapingActive(true);
-    // Simuler un scraping
-    setTimeout(() => {
-      setIsScrapingActive(false);
-    }, 3000);
-  };
-
+  
   return (
-    <div className="p-6 text-white">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Agent IA de Prospection</h1>
-        <button className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors">
-          <RefreshCw className="w-4 h-4" />
-          <span>Actualiser</span>
-        </button>
+    <div className={`p-3 border-b border-gray-700 ${completed ? 'opacity-50' : ''}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <div 
+            className={`w-5 h-5 rounded-full mr-3 border flex items-center justify-center cursor-pointer ${
+              completed ? 'bg-green-500 border-green-600' : 'border-gray-500 hover:border-blue-400'
+            }`}
+            onClick={onToggle}
+          >
+            {completed && <CheckCircle size={14} className="text-white" />}
+          </div>
+          <div>
+            <p className={`font-medium ${completed ? 'line-through text-gray-400' : 'text-white'}`}>{title}</p>
+            <div className="flex items-center mt-1">
+              <Clock size={12} className="text-gray-400 mr-1" />
+              <span className="text-xs text-gray-400">{dueDate}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${priorityClasses[priority]}`}>
+                {priority === 'high' ? 'Urgent' : priority === 'medium' ? 'Moyen' : 'Faible'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Stats Cards */}
+interface CampaignItemProps {
+  title: string;
+  status: 'active' | 'planned' | 'completed';
+  progress: number;
+  influencers: number;
+  startDate: string;
+  endDate: string;
+}
+
+const CampaignItem: React.FC<CampaignItemProps> = ({ 
+  title, status, progress, influencers, startDate, endDate 
+}) => {
+  const statusClasses = {
+    active: 'bg-green-400/20 text-green-300',
+    planned: 'bg-blue-400/20 text-blue-300',
+    completed: 'bg-gray-400/20 text-gray-300'
+  };
+  
+  return (
+    <div className="p-4 border border-gray-700 rounded-xl mb-3 hover:bg-gray-800/50 transition-all">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-medium text-white">{title}</h3>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${statusClasses[status]}`}>
+          {status === 'active' ? 'En cours' : status === 'planned' ? 'Planifiée' : 'Terminée'}
+        </span>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2 text-xs text-gray-400 mb-3">
+        <div>
+          <p>Date</p>
+          <p className="text-white">{startDate} - {endDate}</p>
+        </div>
+        <div>
+          <p>Influenceurs</p>
+          <p className="text-white">{influencers}</p>
+        </div>
+        <div>
+          <p>Avancement</p>
+          <p className="text-white">{progress}%</p>
+        </div>
+      </div>
+      
+      <div className="w-full bg-gray-700 rounded-full h-1.5">
+        <div 
+          className="bg-blue-600 h-1.5 rounded-full" 
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+// Composant principal du dashboard
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    brands: 0,
+    influencers: 0,
+    campaigns: 0,
+    emails: 0
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<TaskItemProps[]>([
+    { title: 'Contacter 3 nouveaux influenceurs', dueDate: 'Aujourd\'hui', priority: 'high', completed: false, onToggle: () => {} },
+    { title: 'Finaliser la campagne été 2023', dueDate: 'Demain', priority: 'medium', completed: false, onToggle: () => {} },
+    { title: 'Analyser les résultats de mai', dueDate: '28/06/2023', priority: 'low', completed: true, onToggle: () => {} },
+    { title: 'Réunion équipe marketing', dueDate: '30/06/2023', priority: 'medium', completed: false, onToggle: () => {} },
+  ]);
+  
+  // Fetch des données réelles
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Récupérer les statistiques des marques
+        const brandStats = await getBrandStatistics();
+        
+        // Récupérer l'historique récent de scraping
+        const scrapingHistory = await getLatestScrapingResults(undefined, 5);
+        
+        // Mise à jour des statistiques
+        setStats({
+          brands: brandStats.totalBrands || 0,
+          influencers: 243, // Données factices - à remplacer par de vraies données
+          campaigns: 28,    // Données factices - à remplacer par de vraies données
+          emails: 78        // Données factices - à remplacer par de vraies données
+        });
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Erreur lors du chargement des données du dashboard:", error);
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+  
+  // Gestion des tâches
+  const toggleTaskCompletion = (index: number) => {
+    const updatedTasks = [...tasks];
+    updatedTasks[index] = {
+      ...updatedTasks[index],
+      completed: !updatedTasks[index].completed
+    };
+    setTasks(updatedTasks);
+  };
+  
+  // Mise à jour des gestionnaires d'événements pour les tâches
+  useEffect(() => {
+    const tasksWithHandlers = tasks.map((task, index) => ({
+      ...task,
+      onToggle: () => toggleTaskCompletion(index)
+    }));
+    setTasks(tasksWithHandlers);
+  }, []);
+  
+  return (
+    <div className="dashboard-container p-6">
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Tableau de bord</h1>
+          <p className="text-gray-400">Vue d'ensemble de votre activité marketing d'influence</p>
+        </div>
+        <div className="flex space-x-3">
+          <button className="btn btn-secondary">
+            <Bell size={18} className="mr-2" />
+            Notifications
+          </button>
+          <button className="btn btn-primary">
+            <Plus size={18} className="mr-2" />
+            Nouvelle campagne
+          </button>
+        </div>
+      </header>
+      
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
-          <div className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Emails générés</p>
-                <h3 className="text-3xl font-bold">42</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                <Mail className="w-5 h-5" />
+        <DashboardCard 
+          title="Marques" 
+          value={loading ? "..." : stats.brands} 
+          icon={<Building2 className="text-white" size={24} />}
+          trend="+12% ce mois"
+          trendUp={true}
+          color="from-blue-600 to-blue-800"
+          onClick={() => window.location.href = "/brands"}
+        />
+        <DashboardCard 
+          title="Influenceurs" 
+          value={loading ? "..." : stats.influencers} 
+          icon={<Users className="text-white" size={24} />}
+          trend="+8% ce mois"
+          trendUp={true}
+          color="from-purple-600 to-purple-800"
+          onClick={() => window.location.href = "/influencers"}
+        />
+        <DashboardCard 
+          title="Campagnes" 
+          value={loading ? "..." : stats.campaigns} 
+          icon={<Calendar className="text-white" size={24} />}
+          trend="+5% ce mois"
+          trendUp={true}
+          color="from-emerald-600 to-emerald-800"
+          onClick={() => window.location.href = "/campaigns"}
+        />
+        <DashboardCard 
+          title="Emails générés" 
+          value={loading ? "..." : stats.emails} 
+          icon={<Mail className="text-white" size={24} />}
+          trend="+15% ce mois"
+          trendUp={true}
+          color="from-amber-600 to-amber-800"
+          onClick={() => window.location.href = "/ai-agent"}
+        />
+      </div>
+      
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Charts Section - 2/3 width */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Campaign Performance Chart */}
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-white">Performance des campagnes</h2>
+              <div className="flex space-x-2">
+                <button className="text-sm text-gray-400 hover:text-white transition-colors">Mois</button>
+                <button className="text-sm bg-gray-700 text-white px-2 py-1 rounded">Trimestre</button>
+                <button className="text-sm text-gray-400 hover:text-white transition-colors">Année</button>
               </div>
             </div>
-            <div className="mt-4 flex items-center">
-              <ArrowUpRight className="w-4 h-4 text-emerald-500 mr-1" />
-              <span className="text-emerald-500">
-                +12% depuis hier
-              </span>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={campaignPerformanceData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1F2937', borderColor: '#4B5563', color: '#F9FAFB' }} 
+                    itemStyle={{ color: '#F9FAFB' }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="engagement" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#1F2937', stroke: '#3B82F6', strokeWidth: 2, r: 6 }} />
+                  <Line type="monotone" dataKey="clicks" stroke="#10B981" strokeWidth={2} dot={{ fill: '#1F2937', stroke: '#10B981', strokeWidth: 2, r: 6 }} />
+                  <Line type="monotone" dataKey="reach" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#1F2937', stroke: '#F59E0B', strokeWidth: 2, r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          
+          {/* Industries Distribution */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <h2 className="text-lg font-semibold text-white mb-4">Distribution par industrie</h2>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={industriesData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {industriesData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => [`${value} marques`, '']}
+                      contentStyle={{ backgroundColor: '#1F2937', borderColor: '#4B5563' }}
+                      itemStyle={{ color: '#F9FAFB' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+            {/* Activity Feed */}
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-white">Activité récente</h2>
+                <Link to="/history" className="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                  Voir tout <ChevronRight size={16} />
+                </Link>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-start">
+                  <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
+                    <Search className="text-blue-400" size={18} />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm">Nouveau scraping <span className="text-blue-400">Adidas</span></p>
+                    <p className="text-xs text-gray-400">Il y a 25 minutes</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-emerald-500/20 p-2 rounded-lg mr-3">
+                    <Mail className="text-emerald-400" size={18} />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm">Email généré pour <span className="text-blue-400">Sephora</span></p>
+                    <p className="text-xs text-gray-400">Il y a 1 heure</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-purple-500/20 p-2 rounded-lg mr-3">
+                    <Users className="text-purple-400" size={18} />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm">Nouvel influenceur ajouté <span className="text-blue-400">Marie Duval</span></p>
+                    <p className="text-xs text-gray-400">Il y a 3 heures</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-amber-500/20 p-2 rounded-lg mr-3">
+                    <Calendar className="text-amber-400" size={18} />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm">Campagne créée <span className="text-blue-400">Été 2023</span></p>
+                    <p className="text-xs text-gray-400">Il y a 5 heures</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
-          <div className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Taux de réponse</p>
-                <h3 className="text-3xl font-bold">38%</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
-                <BarChart className="w-5 h-5" />
-              </div>
+        
+        {/* Sidebar - 1/3 width */}
+        <div className="space-y-6">
+          {/* Tasks List */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <div className="flex justify-between items-center p-5 border-b border-gray-700">
+              <h2 className="text-lg font-semibold text-white">Tâches à faire</h2>
+              <Link to="/tasks" className="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                Voir tout <ChevronRight size={16} />
+              </Link>
             </div>
-            <div className="mt-4 flex items-center">
-              <ArrowUpRight className="w-4 h-4 text-emerald-500 mr-1" />
-              <span className="text-emerald-500">
-                +5% depuis la semaine dernière
-              </span>
+            <div className="overflow-y-auto max-h-80">
+              {tasks.map((task, index) => (
+                <TaskItem 
+                  key={index}
+                  title={task.title}
+                  dueDate={task.dueDate}
+                  priority={task.priority}
+                  completed={task.completed}
+                  onToggle={task.onToggle}
+                />
+              ))}
             </div>
-          </div>
-        </div>
-
-        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
-          <div className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Marques scrapées</p>
-                <h3 className="text-3xl font-bold">156</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600">
-                <Building2 className="w-5 h-5" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center">
-              <ArrowUpRight className="w-4 h-4 text-emerald-500 mr-1" />
-              <span className="text-emerald-500">
-                +24 nouvelles marques
-              </span>
+            <div className="p-4 border-t border-gray-700">
+              <button className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center justify-center">
+                <Plus size={16} className="mr-1" />
+                Ajouter une tâche
+              </button>
             </div>
           </div>
-        </div>
-
-        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
-          <div className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Contacts identifiés</p>
-                <h3 className="text-3xl font-bold">89</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
-                <Users className="w-5 h-5" />
-              </div>
+          
+          {/* Campaigns */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <div className="flex justify-between items-center p-5 border-b border-gray-700">
+              <h2 className="text-lg font-semibold text-white">Campagnes actives</h2>
+              <Link to="/campaigns" className="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                Voir tout <ChevronRight size={16} />
+              </Link>
             </div>
-            <div className="mt-4 flex items-center">
-              <ArrowUpRight className="w-4 h-4 text-emerald-500 mr-1" />
-              <span className="text-emerald-500">
-                +15 nouveaux contacts
-              </span>
+            <div className="p-4">
+              <CampaignItem 
+                title="Campagne d'été 2023"
+                status="active"
+                progress={65}
+                influencers={8}
+                startDate="01/06"
+                endDate="31/07"
+              />
+              <CampaignItem 
+                title="Lancement produit XYZ"
+                status="active"
+                progress={25}
+                influencers={5}
+                startDate="15/06"
+                endDate="15/08"
+              />
+              <CampaignItem 
+                title="Promotion rentrée"
+                status="planned"
+                progress={0}
+                influencers={12}
+                startDate="01/08"
+                endDate="15/09"
+              />
+            </div>
+            <div className="p-4 border-t border-gray-700">
+              <Link 
+                to="/campaigns/new" 
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center"
+              >
+                <Plus size={16} className="mr-1" />
+                Nouvelle campagne
+              </Link>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Agent IA et Scraping */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold flex items-center">
-              <Bot className="w-5 h-5 mr-2 text-blue-400" />
-              Agent IA
-            </h2>
-            <span className={`px-3 py-1 rounded-full text-xs ${isGenerating ? 'bg-blue-900 text-blue-300 animate-pulse-slow' : 'bg-gray-700 text-gray-300'}`}>
-              {isGenerating ? 'En cours de génération' : 'Prêt'}
-            </span>
+      
+      {/* Bottom Row - Quick Access */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Link 
+          to="/scraping"
+          className="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-blue-500 transition-all group"
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="p-3 bg-blue-500/20 rounded-lg">
+              <Search size={24} className="text-blue-400" />
+            </div>
+            <ArrowUpRight size={20} className="text-gray-400 group-hover:text-blue-400 transition-colors" />
           </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-gray-700 bg-opacity-50 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">Génération d'emails personnalisés</p>
-                  <p className="text-xs text-gray-400">Basé sur l'actualité des marques et le profil des influenceurs</p>
-                </div>
-              </div>
+          <h3 className="text-lg font-semibold text-white mb-1">Scraping</h3>
+          <p className="text-gray-400 text-sm">Analyser de nouvelles marques et collecter des données.</p>
+        </Link>
+        
+        <Link 
+          to="/ai-agent"
+          className="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-indigo-500 transition-all group"
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="p-3 bg-indigo-500/20 rounded-lg">
+              <Zap size={24} className="text-indigo-400" />
             </div>
-            <div className="flex justify-between items-center p-3 bg-gray-700 bg-opacity-50 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mr-3">
-                  <Send className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">Envoi automatisé</p>
-                  <p className="text-xs text-gray-400">Envoi aux contacts identifiés via proxy sécurisé</p>
-                </div>
-              </div>
-            </div>
+            <ArrowUpRight size={20} className="text-gray-400 group-hover:text-indigo-400 transition-colors" />
           </div>
-          <button 
-            className={`w-full mt-6 py-2 rounded-lg font-medium transition-all ${
-              isGenerating 
-                ? 'bg-gray-700 text-gray-300 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-            }`}
-            onClick={handleGenerateEmails}
-            disabled={isGenerating}
-          >
-            {isGenerating ? 'Génération en cours...' : 'Générer de nouveaux emails'}
-          </button>
-        </div>
-
-        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold flex items-center">
-              <Globe className="w-5 h-5 mr-2 text-emerald-400" />
-              Scraping
-            </h2>
-            <span className={`px-3 py-1 rounded-full text-xs ${isScrapingActive ? 'bg-emerald-900 text-emerald-300 animate-pulse-slow' : 'bg-gray-700 text-gray-300'}`}>
-              {isScrapingActive ? 'En cours' : 'Prêt'}
-            </span>
+          <h3 className="text-lg font-semibold text-white mb-1">Agent IA</h3>
+          <p className="text-gray-400 text-sm">Générer des emails et du contenu avec l'intelligence artificielle.</p>
+        </Link>
+        
+        <Link 
+          to="/analytics"
+          className="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-emerald-500 transition-all group"
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="p-3 bg-emerald-500/20 rounded-lg">
+              <Activity size={24} className="text-emerald-400" />
+            </div>
+            <ArrowUpRight size={20} className="text-gray-400 group-hover:text-emerald-400 transition-colors" />
           </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-gray-700 bg-opacity-50 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mr-3">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">Actualités des marques</p>
-                  <p className="text-xs text-gray-400">Collecte des lancements de produits et campagnes marketing</p>
-                </div>
-              </div>
+          <h3 className="text-lg font-semibold text-white mb-1">Analytique</h3>
+          <p className="text-gray-400 text-sm">Visualiser les performances et obtenir des insights.</p>
+        </Link>
+        
+        <Link 
+          to="/settings"
+          className="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-gray-500 transition-all group"
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="p-3 bg-gray-500/20 rounded-lg">
+              <Settings size={24} className="text-gray-400" />
             </div>
-            <div className="flex justify-between items-center p-3 bg-gray-700 bg-opacity-50 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mr-3">
-                  <Search className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">Identification des contacts</p>
-                  <p className="text-xs text-gray-400">Recherche des responsables marketing et communication</p>
-                </div>
-              </div>
-            </div>
+            <ArrowUpRight size={20} className="text-gray-400 group-hover:text-white transition-colors" />
           </div>
-          <button 
-            className={`w-full mt-6 py-2 rounded-lg font-medium transition-all ${
-              isScrapingActive 
-                ? 'bg-gray-700 text-gray-300 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white'
-            }`}
-            onClick={handleStartScraping}
-            disabled={isScrapingActive}
-          >
-            {isScrapingActive ? 'Scraping en cours...' : 'Lancer un nouveau scraping'}
-          </button>
-        </div>
-      </div>
-
-      {/* Intégration avec Airtable */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold flex items-center">
-            <Database className="w-5 h-5 mr-2 text-purple-400" />
-            Intégration avec Airtable
-          </h2>
-          <span className="px-3 py-1 bg-purple-900 text-purple-300 rounded-full text-xs">Connecté</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-2">Marques</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">156</span>
-              <span className="text-xs text-gray-400">Dernière synchro: il y a 2h</span>
-            </div>
-          </div>
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-2">Influenceurs</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">24</span>
-              <span className="text-xs text-gray-400">Dernière synchro: il y a 2h</span>
-            </div>
-          </div>
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-2">Campagnes</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold">42</span>
-              <span className="text-xs text-gray-400">Dernière synchro: il y a 2h</span>
-            </div>
-          </div>
-        </div>
-        <button className="w-full mt-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-medium transition-all text-white">
-          Synchroniser avec Airtable
-        </button>
-      </div>
-
-      {/* Statistiques */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold flex items-center">
-            <BarChart className="w-5 h-5 mr-2 text-amber-400" />
-            Statistiques de performance
-          </h2>
-          <select className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-sm">
-            <option>7 derniers jours</option>
-            <option>30 derniers jours</option>
-            <option>3 derniers mois</option>
-          </select>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-4">Taux d'ouverture des emails</h3>
-            <div className="h-8 bg-gray-600 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full" style={{ width: '68%' }}></div>
-            </div>
-            <div className="mt-2 flex justify-between text-sm">
-              <span>68%</span>
-              <span className="text-gray-400">Moyenne du secteur: 42%</span>
-            </div>
-          </div>
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-4">Taux de réponse</h3>
-            <div className="h-8 bg-gray-600 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full" style={{ width: '38%' }}></div>
-            </div>
-            <div className="mt-2 flex justify-between text-sm">
-              <span>38%</span>
-              <span className="text-gray-400">Moyenne du secteur: 22%</span>
-            </div>
-          </div>
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-4">Taux de conversion</h3>
-            <div className="h-8 bg-gray-600 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full" style={{ width: '24%' }}></div>
-            </div>
-            <div className="mt-2 flex justify-between text-sm">
-              <span>24%</span>
-              <span className="text-gray-400">Moyenne du secteur: 15%</span>
-            </div>
-          </div>
-          <div className="p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-            <h3 className="font-medium mb-4">Précision de l'IA</h3>
-            <div className="h-8 bg-gray-600 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-500 to-pink-600 rounded-full" style={{ width: '92%' }}></div>
-            </div>
-            <div className="mt-2 flex justify-between text-sm">
-              <span>92%</span>
-              <span className="text-gray-400">Amélioration continue</span>
-            </div>
-          </div>
-        </div>
+          <h3 className="text-lg font-semibold text-white mb-1">Paramètres</h3>
+          <p className="text-gray-400 text-sm">Configurer votre compte et vos préférences.</p>
+        </Link>
       </div>
     </div>
   );

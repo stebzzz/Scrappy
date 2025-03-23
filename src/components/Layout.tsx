@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { 
   Home, 
   Users, 
@@ -16,11 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -164,7 +160,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content */}
       <div className="flex-1 overflow-auto bg-gray-900">
         <div className="max-w-7xl mx-auto">
-          {children}
+          <Outlet /> {/* C'est ici que le contenu des routes enfants sera rendu */}
         </div>
       </div>
     </div>

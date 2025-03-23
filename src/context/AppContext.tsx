@@ -3,7 +3,14 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
 import { subscribeToAuthChanges, getCurrentUser } from '../services/auth';
-import { Brand, Influencer, Campaign } from '../services/database';
+import { 
+  Brand, 
+  Influencer, 
+  Campaign, 
+  getBrands, 
+  getInfluencers, 
+  getCampaigns 
+} from '../services/database';
 import { AIProvider } from '../services/ai-service';
 import { APP_SETTINGS } from '../config/app-settings';
 import { db } from '../config/firebase';
@@ -87,25 +94,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Refresh data function
   const refreshData = async () => {
     try {
-      // Récupérer les données depuis Firebase
-      const brandsRef = collection(db, 'brands');
-      const brandsSnapshot = await getDocs(brandsRef);
-      const brandsData = brandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Brand[];
+      console.log("Chargement des données...");
+      const [brandsData, influencersData, campaignsData] = await Promise.all([
+        getBrands(),
+        getInfluencers(),
+        getCampaigns()
+      ]);
+      
+      console.log("Données chargées:", {
+        brands: brandsData.length,
+        influencers: influencersData.length,
+        campaigns: campaignsData.length
+      });
+      
       setBrands(brandsData);
-      
-      const influencersRef = collection(db, 'influencers');
-      const influencersSnapshot = await getDocs(influencersRef);
-      const influencersData = influencersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Influencer[];
       setInfluencers(influencersData);
-      
-      const campaignsRef = collection(db, 'campaigns');
-      const campaignsSnapshot = await getDocs(campaignsRef);
-      const campaignsData = campaignsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Campaign[];
       setCampaigns(campaignsData);
       
-      console.log('Données rafraîchies avec succès');
+      return {
+        brands: brandsData,
+        influencers: influencersData,
+        campaigns: campaignsData
+      };
     } catch (error) {
-      console.error('Erreur lors du rafraîchissement des données:', error);
+      console.error("Erreur lors du rafraîchissement des données:", error);
+      throw error;
     }
   };
   
@@ -118,6 +131,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     // Cleanup subscription on unmount
     return () => unsubscribe();
+  }, []);
+  
+  useEffect(() => {
+    // Charger les données initiales
+    const fetchInitialData = async () => {
+      try {
+        setIsLoading(true);
+        await refreshData();
+      } catch (error) {
+        console.error("Erreur lors du chargement des données:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialData();
   }, []);
   
   // The value to be provided to consumers
@@ -149,3 +178,5 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 export const useAppContext = () => useContext(AppContext);
 
 export default AppContext;
+
+export const AppContextProvider = AppProvider;

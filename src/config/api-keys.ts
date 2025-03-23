@@ -34,11 +34,20 @@ export const MISTRAL_CONFIG = {
   defaultModel: 'mistral-large-latest',
 };
 
-// Export all configurations as a single object
+// Clés API pour les services externes
+// ATTENTION: Ne jamais exposer ces clés dans le code client en production
+// Utilisez des variables d'environnement et un backend sécurisé
+
 export const API_KEYS = {
-  openai: OPENAI_CONFIG,
+  // Utilisez les variables d'environnement en production
+  anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || 'sk-ant-votreclefactice',
+  openai: import.meta.env.VITE_OPENAI_API_KEY || 'sk-votreclefactice',
   claude: CLAUDE_CONFIG,
   firecrawl: FIRECRAWL_CONFIG,
   gemini: GEMINI_CONFIG,
   mistral: MISTRAL_CONFIG,
 };
+
+// Pour la production, ajoutez ces variables dans votre fichier .env:
+// VITE_ANTHROPIC_API_KEY=sk-ant-...
+// VITE_OPENAI_API_KEY=sk-...

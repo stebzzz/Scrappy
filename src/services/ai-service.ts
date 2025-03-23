@@ -5,7 +5,44 @@ import { generateGeminiContent } from './gemini';
 import { generateMistralContent } from './mistral';
 
 // AI Provider types
-export type AIProvider = 'openai' | 'claude' | 'gemini' | 'mistral';
+export type AIProvider = 'openai' | 'claude' | 'gemini' | 'mistral' | 'anthropic';
+
+// Interface pour les réponses API d'IA
+interface AIResponse {
+  text?: string;
+  content?: string;
+  choices?: Array<{text?: string, message?: {content: string}}>;
+  error?: string;
+}
+
+// Fonction pour traiter les réponses d'API de manière uniforme
+const processAIResponse = (response: AIResponse, provider: AIProvider): string => {
+  if (response.error) {
+    throw new Error(`Erreur ${provider}: ${response.error}`);
+  }
+  
+  // OpenAI format
+  if (response.choices && response.choices[0]) {
+    if (response.choices[0].message?.content) {
+      return response.choices[0].message.content;
+    }
+    if (response.choices[0].text) {
+      return response.choices[0].text;
+    }
+  }
+  
+  // Claude format
+  if (response.content) {
+    return response.content;
+  }
+  
+  // Texte brut
+  if (response.text) {
+    return response.text;
+  }
+  
+  throw new Error(`Format de réponse non reconnu de ${provider}`);
+};
 
 /**
  * Generate content using the specified AI provider
@@ -47,6 +84,9 @@ export const generateContent = async (
           options.model || 'mistral-large-latest',
           options.temperature || 0.7
         );
+      case 'anthropic':
+        // Implementation for Anthropic
+        throw new Error('Anthropic implementation not provided');
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
@@ -346,4 +386,23 @@ export const generateContentCalendar = async (
   `;
 
   return generateContent(prompt, preferredProvider);
+};
+
+// Fonction de mappage de modèle d'interface vers modèle réel
+export const mapToProviderModel = (uiModel: string, provider: AIProvider): string => {
+  if (provider === 'anthropic') {
+    switch(uiModel) {
+      case 'advanced': return 'claude-3-7-sonnet';
+      case 'creative': return 'claude-3-sonnet';
+      case 'precise': return 'claude-3-opus';
+      default: return 'claude-3-5-sonnet';
+    }
+  } else {
+    switch(uiModel) {
+      case 'advanced': return 'gpt-4o';
+      case 'creative': return 'gpt-4-turbo';
+      case 'precise': return 'gpt-4';
+      default: return 'gpt-3.5-turbo';
+    }
+  }
 };

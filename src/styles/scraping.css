@@ -1,0 +1,150 @@
+/* Styles existants */
+
+/* Styles pour l'historique de scraping */
+.history-toggle {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+.history-button {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.history-button:hover {
+  background-color: #e0e0e0;
+}
+
+.history-section {
+  margin-top: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: #fafafa;
+}
+
+.history-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.history-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.history-item:hover {
+  background-color: #f0f0f0;
+}
+
+.history-item.selected {
+  background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
+}
+
+.history-item-url {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  word-break: break-all;
+}
+
+.history-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.history-item-type {
+  text-transform: uppercase;
+  background-color: #e6f7ff;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+}
+
+.history-item-date {
+  color: #999;
+}
+
+/* Styles pour le tableau d'historique */
+.history-table-container {
+  margin-top: 1rem;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.history-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.history-table .url-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-table .selected-row {
+  background-color: #e6f7ff;
+}
+
+.history-table .use-button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.history-table .use-button:hover {
+  background-color: #40a9ff;
+}
+
+/* Styles pour les onglets personnalisés */
+.tabs-header {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  background-color: #f5f5f5;
+}
+
+.tab.active {
+  border-bottom: 2px solid #1890ff;
+  color: #1890ff;
+}
+
+.tab-content {
+  padding: 1rem 0;
+} 

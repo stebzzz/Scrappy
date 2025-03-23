@@ -2,16 +2,17 @@
 import { useState } from 'react';
 import { 
   createScrapingJob, 
-  getScrapingJobResult, 
   scrapeBrandContactInfo, 
   scrapeBrandNews, 
   scrapeInfluencerProfile 
 } from '../services/firecrawl';
+import { saveScrapingResult, getScrapingResultsByUrl } from '../services/database';
 import { SCRAPING_SETTINGS } from '../config/app-settings';
 
 interface UseScrapingOptions {
   waitTime?: number;
   maxRetries?: number;
+  saveResults?: boolean;
 }
 
 interface UseScrapingReturn {
@@ -23,26 +24,38 @@ interface UseScrapingReturn {
   createCustomScrapingJob: (url: string, selectors: Record<string, string>, javascript?: boolean) => Promise<any>;
 }
 
+interface SavedResult {
+  timestamp: any;
+  id: string;
+  type?: string;
+  data?: any;
+}
+
+interface ScrapingResult {
+  status: string;
+  data?: any;
+  error?: string;
+  jobId?: string;
+}
+
 export const useScraping = (options: UseScrapingOptions = {}): UseScrapingReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const waitTime = options.waitTime || SCRAPING_SETTINGS.defaultSettings.waitTime;
-  const maxRetries = options.maxRetries || SCRAPING_SETTINGS.defaultSettings.maxRetries;
+  const waitTime = options.waitTime || SCRAPING_SETTINGS?.defaultSettings?.waitTime || 3000;
+  const maxRetries = options.maxRetries || SCRAPING_SETTINGS?.defaultSettings?.maxRetries || 3;
+  const saveResults = options.saveResults !== false; // Par défaut, on sauvegarde les résultats
 
-  const scrapeBrandContact = async (brandUrl: string): Promise<any> => {
-    setIsLoading(true);
-    setError(null);
+  const scrapeBrandContact = async (url: string, options = { useScrapingBee: true }): Promise<any> => {
+    console.log(`Scraping des informations de contact pour ${url} avec ScrapingBee:`, options.useScrapingBee);
     
     try {
-      const result = await scrapeBrandContactInfo(brandUrl);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
+      // Utiliser directement la fonction de firecrawl
+      const contactInfo = await scrapeBrandContactInfo(url);
+      return contactInfo;
+    } catch (error) {
+      console.error("Erreur lors du scraping des contacts:", error);
+      throw error;
     }
   };
 
@@ -51,7 +64,22 @@ export const useScraping = (options: UseScrapingOptions = {}): UseScrapingReturn
     setError(null);
     
     try {
+      // Vérifier d'abord si on a des résultats récents en base
+      const savedResults = await getScrapingResultsByUrl(brandUrl);
+      
+      // Si on a des résultats récents (moins de 24h)
+      if (savedResults && isRecent(savedResults.timestamp) && (savedResults as SavedResult).type === 'news') {
+        console.log('Utilisation des résultats d\'actualités sauvegardés pour:', brandUrl);
+        return (savedResults as SavedResult).data;
+      }
+      
       const result = await scrapeBrandNews(brandUrl);
+      
+      // Sauvegarder les résultats si l'option est activée
+      if (saveResults && result) {
+        await saveScrapingResult('news', brandUrl, result);
+      }
+      
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -67,7 +95,22 @@ export const useScraping = (options: UseScrapingOptions = {}): UseScrapingReturn
     setError(null);
     
     try {
+      // Vérifier d'abord si on a des résultats récents en base
+      const savedResults = await getScrapingResultsByUrl(profileUrl);
+      
+      // Si on a des résultats récents (moins de 24h)
+      if (savedResults && isRecent(savedResults.timestamp) && (savedResults as SavedResult).type === 'profile') {
+        console.log('Utilisation des résultats de profil sauvegardés pour:', profileUrl);
+        return (savedResults as SavedResult).data;
+      }
+      
       const result = await scrapeInfluencerProfile(profileUrl);
+      
+      // Sauvegarder les résultats si l'option est activée
+      if (saveResults && result) {
+        await saveScrapingResult('profile', profileUrl, result);
+      }
+      
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -87,29 +130,21 @@ export const useScraping = (options: UseScrapingOptions = {}): UseScrapingReturn
     setError(null);
     
     try {
-      // Create the scraping job
-      const job = await createScrapingJob({
-        url,
+      const result = await createScrapingJob(url, {
         selectors,
         javascript,
+        type: 'custom' as any
       });
 
-      // Poll for results with retry logic
-      let result = { jobId: job.jobId, status: 'pending' };
-      let retries = 0;
-      
-      while ((result.status === 'pending' || result.status === 'processing') && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        result = await getScrapingJobResult(job.jobId);
-        retries++;
-      }
-
       if (result.status === 'completed') {
-        return result.data;
-      } else if (result.status === 'failed') {
-        throw new Error(`Scraping job failed: ${result.error || 'Unknown error'}`);
+        // Sauvegarder les résultats si l'option est activée
+        if (saveResults && (result as ScrapingResult).data) {
+          await saveScrapingResult('custom' as any, url, (result as ScrapingResult).data);
+        }
+        
+        return (result as ScrapingResult).data;
       } else {
-        throw new Error(`Scraping job timed out after ${maxRetries} retries`);
+        throw new Error(`Échec du scraping: ${(result as ScrapingResult).error || 'Erreur inconnue'}`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -118,6 +153,14 @@ export const useScraping = (options: UseScrapingOptions = {}): UseScrapingReturn
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Fonction utilitaire pour vérifier si un timestamp est récent (moins de 24h)
+  const isRecent = (timestamp: Date): boolean => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const hours = diff / (1000 * 60 * 60);
+    return hours < 24; // Considérer comme récent si moins de 24h
   };
 
   return {
