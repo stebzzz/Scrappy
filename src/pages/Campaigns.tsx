@@ -139,7 +139,7 @@ const Campaigns: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -152,21 +152,21 @@ const Campaigns: React.FC = () => {
           Nouvelle campagne
         </Link>
       </div>
-      
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Liste des campagnes */}
         <div className="w-full md:w-2/5 lg:w-1/3">
           <div className="mb-4 flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Rechercher une campagne..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Rechercher une campagne..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg pl-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            </div>
+          </div>
             <button className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg">
               <Filter className="h-5 w-5 text-gray-300" />
             </button>
@@ -192,13 +192,13 @@ const Campaigns: React.FC = () => {
                         <div className={`px-2 py-1 rounded-full text-xs flex items-center ${statusInfo.class}`}>
                           {statusInfo.icon}
                           {statusInfo.label}
-                        </div>
-                      </div>
-                      
+        </div>
+      </div>
+
                       <div className="flex items-center text-sm text-gray-400 mb-2">
                         <Building2 className="w-3.5 h-3.5 mr-1" />
                         <span>{brandInfo?.name || 'Marque inconnue'}</span>
-                      </div>
+                    </div>
                       
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center">
@@ -211,15 +211,15 @@ const Campaigns: React.FC = () => {
                             {campaign.influencerIds?.length || 0}
                           </span>
                         </div>
-                      </div>
-                    </div>
+                        </div>
+                        </div>
                   );
                 })}
-              </div>
+                        </div>
             ) : (
               <div className="py-6 text-center">
                 <p className="text-gray-400">Aucune campagne trouvée</p>
-              </div>
+                        </div>
             )}
           </div>
         </div>
@@ -242,11 +242,11 @@ const Campaigns: React.FC = () => {
                     <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                       <span className="text-2xl font-bold text-white">
                         {selectedCampaign.name.charAt(0).toUpperCase()}
-                      </span>
+                  </span>
                     </div>
                   </div>
-                </div>
-                
+                  </div>
+                  
                 <div className="mt-12 p-6">
                   <div className="flex justify-between items-start mb-6">
                     <div>
@@ -300,10 +300,10 @@ const Campaigns: React.FC = () => {
                         <div className="flex justify-between">
                           <span className="text-gray-400">Influenceurs:</span>
                           <span className="text-white">{selectedCampaign.influencerIds?.length || 0}</span>
-                        </div>
-                      </div>
                     </div>
-                    
+                    </div>
+                  </div>
+                  
                     <div className="bg-gray-700/30 p-4 rounded-lg">
                       <h3 className="text-sm font-medium text-white mb-3">Objectifs</h3>
                       {selectedCampaign.goals?.length ? (
@@ -345,11 +345,11 @@ const Campaigns: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <div>
+                    <div>
                             <p className="text-white text-sm">{influencer.name}</p>
                             <p className="text-gray-400 text-xs">{influencer.followers?.toLocaleString('fr-FR') || 0} abonnés</p>
-                          </div>
-                        </div>
+                      </div>
+                    </div>
                       ))}
                     </div>
                   ) : (
@@ -366,9 +366,9 @@ const Campaigns: React.FC = () => {
                 <p className="text-gray-400 mb-6 max-w-md">
                   Sélectionnez une campagne dans la liste ou créez-en une nouvelle.
                 </p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
         </div>
       </div>
       

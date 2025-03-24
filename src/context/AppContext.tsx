@@ -72,8 +72,8 @@ const AppContext = createContext<AppContextType>({
 // Provider component
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Authentication state
-  const [currentUser, setCurrentUser] = useState<User | null>(getCurrentUser());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Data state
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -129,7 +129,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsLoading(false);
     });
     
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
   
@@ -166,6 +165,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toggleDarkMode,
     refreshData,
   };
+  
+  // Au début de la fonction AppProvider
+  const [user, setUser] = useState({
+    id: '1',
+    name: 'Admin Test',
+    email: 'admin@test.com',
+    role: 'admin'
+  });
   
   return (
     <AppContext.Provider value={contextValue}>

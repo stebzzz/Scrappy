@@ -20,14 +20,24 @@ interface ScrapingResult {
   insights?: any[];
 }
 
-const StatCard = ({ title, value, icon, color }) => (
+const StatCard = ({ 
+  title, 
+  value, 
+  icon, 
+  color 
+}: { 
+  title: string; 
+  value: string | number; 
+  icon: React.ReactNode; 
+  color: string 
+}) => (
   <div className={`bg-gray-800 p-4 rounded-xl border-l-4 ${color}`}>
     <div className="flex items-center">
       <div className={`p-3 rounded-lg ${color.replace('border-', 'bg-')}/10 mr-3`}>
         {icon}
       </div>
       <div>
-        <p className="text-gray-400 text-xs uppercase font-medium">{title}</p>
+        <h3 className="text-gray-400 text-sm">{title}</h3>
         <p className="text-white text-xl font-bold">{value}</p>
       </div>
     </div>
@@ -39,11 +49,37 @@ const Scraping = () => {
   const [newBrandUrl, setNewBrandUrl] = useState('');
   const [isScrapingActive, setIsScrapingActive] = useState(false);
   const [scrapingResults, setScrapingResults] = useState<ScrapingResult | null>(null);
-  const [historyItems, setHistoryItems] = useState([]);
+  const [historyItems, setHistoryItems] = useState<{
+    id: string;
+    type: string;
+    url: string;
+    timestamp: any;
+    data: any;
+  }>([]);
   const [activeTab, setActiveTab] = useState('scraping');
   const [contactsFound, setContactsFound] = useState([]);
   const [showBrandForm, setShowBrandForm] = useState(false);
-  const [brandStats, setBrandStats] = useState(null);
+  const [brandStats, setBrandStats] = useState<{
+    totalBrands: number;
+    brandsByIndustry: Record<string, number>;
+    contactStats: {
+      withEmail: number;
+      withPhone: number;
+      withBoth: number;
+      withNone: number;
+    };
+    socialMediaStats: {
+      Facebook: number;
+      Twitter: number;
+      Instagram: number;
+      LinkedIn: number;
+      YouTube: number;
+      Pinterest: number;
+      TikTok: number;
+      Other: number;
+    };
+    updatedInLastMonth: number;
+  } | null>(null);
   const [brandFormData, setBrandFormData] = useState({
     name: '',
     industry: '',
@@ -159,7 +195,7 @@ const Scraping = () => {
     } catch (error) {
       console.error("Erreur lors du scraping:", error);
       setScrapingResults({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         url: newBrandUrl,
         scrapedAt: new Date()
       });
@@ -180,14 +216,26 @@ const Scraping = () => {
     try {
       // Préparer les données à sauvegarder
       const brandToSave = {
-        ...brandFormData,
-        socialLinks: scrapingResults?.socialLinks || [],
-        newsItems: scrapingResults?.newsItems || [],
+        name: brandFormData.name,
+        industry: brandFormData.industry,
+        description: brandFormData.description,
+        contactEmail: brandFormData.contactEmail,
+        contactPhone: brandFormData.contactPhone,
+        website: brandFormData.website,
+        status: brandFormData.status,
+        notes: brandFormData.notes,
+        socialLinks: brandFormData.socialLinks.reduce((acc: Record<string, string>, link: any) => {
+          if (link.platform && link.url) {
+            acc[link.platform] = link.url;
+          }
+          return acc;
+        }, {}),
+        newsItems: brandFormData.newsItems || [],
         lastUpdated: new Date(),
         scrapingData: {
-          url: newBrandUrl,
-          scrapedAt: scrapingResults?.scrapedAt || new Date(),
-          insights: scrapingResults?.insights || []
+          url: brandFormData.url || "",
+          scrapedAt: new Date(),
+          insights: brandFormData.insights || []
         }
       };
       
@@ -205,7 +253,7 @@ const Scraping = () => {
       
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert(`Erreur: ${error.message}`);
+      alert(`Erreur: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
   
@@ -219,7 +267,7 @@ const Scraping = () => {
   };
   
   // Sélectionner un contact pour l'email principal
-  const handleSelectContact = (email) => {
+  const handleSelectContact = (email: string) => {
     // Mettre à jour le formulaire avec l'email sélectionné
     setBrandFormData(prev => ({
       ...prev,

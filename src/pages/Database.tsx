@@ -100,8 +100,8 @@ const DatabasePage: React.FC = () => {
         <header className="mb-6">
           <h1 className="text-2xl font-bold mb-2 flex items-center text-blue-500">
             <Database className="mr-2" />
-            Base de données
-          </h1>
+          Base de données
+        </h1>
           <p className="text-gray-400">Accédez et gérez toutes vos données</p>
         </header>
 
@@ -127,7 +127,7 @@ const DatabasePage: React.FC = () => {
               Campagnes
             </button>
           </div>
-
+          
           {/* Search and actions bar */}
           <div className="p-4 border-b border-gray-700 flex flex-wrap gap-3 justify-between">
             <div className="relative w-full md:w-64">
@@ -142,29 +142,29 @@ const DatabasePage: React.FC = () => {
             </div>
             
             <div className="flex space-x-2">
-              <button 
+            <button 
                 onClick={fetchData}
                 className="px-4 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded flex items-center"
-              >
+            >
                 <RefreshCw size={16} className="mr-2" />
                 Actualiser
-              </button>
-              <button 
+            </button>
+            <button 
                 onClick={handleExportData}
                 className="px-4 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded flex items-center"
               >
                 <Download size={16} className="mr-2" />
                 Exporter
-              </button>
-            </div>
-          </div>
+            </button>
+        </div>
+      </div>
 
           {/* Data table */}
           <div className="overflow-x-auto">
             {isLoading ? (
               <div className="p-20 flex items-center justify-center">
                 <RefreshCw size={30} className="animate-spin text-blue-500" />
-              </div>
+                    </div>
             ) : (
               <>
                 {activeTab === 'brands' && (
@@ -176,8 +176,8 @@ const DatabasePage: React.FC = () => {
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contact</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Statut</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
+                </tr>
+              </thead>
                     <tbody className="bg-gray-800 divide-y divide-gray-700">
                       {filteredData().map((brand: Brand) => (
                         <tr key={brand.id} className="hover:bg-gray-750">
@@ -189,7 +189,7 @@ const DatabasePage: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-300">{brand.contactEmail || '-'}</div>
-                          </td>
+                      </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                               brand.status === 'active' ? 'bg-green-100 text-green-800' : 
@@ -197,22 +197,22 @@ const DatabasePage: React.FC = () => {
                               'bg-yellow-100 text-yellow-800'
                             }`}>
                               {brand.status || 'pending'}
-                            </span>
-                          </td>
+                        </span>
+                      </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                             <div className="flex space-x-2">
                               <button className="text-gray-400 hover:text-blue-500">
                                 <Eye size={16} />
-                              </button>
+                          </button>
                               <button className="text-gray-400 hover:text-yellow-500">
                                 <Edit size={16} />
-                              </button>
+                          </button>
                               <button className="text-gray-400 hover:text-red-500">
                                 <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                       ))}
                     </tbody>
                   </table>
@@ -248,22 +248,22 @@ const DatabasePage: React.FC = () => {
                               'bg-yellow-100 text-yellow-800'
                             }`}>
                               {influencer.status}
-                            </span>
+              </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            <div className="flex space-x-2">
+            <div className="flex space-x-2">
                               <button className="text-gray-400 hover:text-blue-500">
                                 <Eye size={16} />
-                              </button>
+              </button>
                               <button className="text-gray-400 hover:text-yellow-500">
                                 <Edit size={16} />
-                              </button>
+              </button>
                               <button className="text-gray-400 hover:text-red-500">
                                 <Trash2 size={16} />
-                              </button>
-                            </div>
+              </button>
+            </div>
                           </td>
-                        </tr>
+                  </tr>
                       ))}
                     </tbody>
                   </table>
@@ -306,19 +306,19 @@ const DatabasePage: React.FC = () => {
                             <div className="flex space-x-2">
                               <button className="text-gray-400 hover:text-blue-500">
                                 <Eye size={16} />
-                              </button>
+                          </button>
                               <button className="text-gray-400 hover:text-yellow-500">
                                 <Edit size={16} />
-                              </button>
+                          </button>
                               <button className="text-gray-400 hover:text-red-500">
                                 <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
                 )}
               </>
             )}

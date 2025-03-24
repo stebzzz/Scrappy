@@ -146,8 +146,8 @@ const Analytics: React.FC = () => {
   };
 
   // Fonction pour obtenir l'icône de tendance
-  const getTrendIcon = (trend: string) => {
-    return trend === 'up' ? 
+  const getTrendIcon = (isPositive: boolean) => {
+    return isPositive ? 
       <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : 
       <ArrowDownRight className="w-4 h-4 text-red-400" />;
   };

@@ -128,10 +128,23 @@ const CampaignCard: React.FC<{
   );
 };
 
+// En haut du fichier, après les imports
+interface ExtendedInfluencer extends Influencer {
+  avatar?: string;
+  verified?: boolean;
+  tier?: string;
+  handle?: string;
+  bio?: string;
+  joinedAt?: string;
+  country?: string;
+  rate?: number;
+  website?: string;
+}
+
 const InfluencerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [influencer, setInfluencer] = useState<Influencer | null>(null);
+  const [influencer, setInfluencer] = useState<ExtendedInfluencer | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [showContacts, setShowContacts] = useState<boolean>(false);
