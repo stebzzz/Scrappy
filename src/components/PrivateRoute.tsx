@@ -1,17 +1,16 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { fetchCurrentUser } from '../services/authService';
 
-const PrivateRoute = ({ children }) => {
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAppContext();
   
-  console.log("PrivateRoute check:", user);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
   
-  // Temporairement, permettez toujours l'accès pour tester
-  return children || <Outlet />;
-  
-  // Code original:
-  // return user ? (children || <Outlet />) : <Navigate to="/login" />;
+  return <>{children}</> || <Outlet />;
 };
 
 export default PrivateRoute; 

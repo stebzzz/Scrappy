@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
-import { subscribeToAuthChanges, getCurrentUser } from '../services/auth';
+import { subscribeToAuthChanges, getCurrentUser } from '../services/authService';
 import { 
   Brand, 
   Influencer, 
@@ -40,6 +40,10 @@ interface AppContextType {
   
   // Refresh data
   refreshData: () => Promise<void>;
+  
+  // User
+  user: any;
+  setUser: (user: any) => void;
 }
 
 // Create context with default values
@@ -67,6 +71,10 @@ const AppContext = createContext<AppContextType>({
   
   // Refresh data
   refreshData: async () => {},
+  
+  // User
+  user: null,
+  setUser: () => {},
 });
 
 // Provider component
@@ -85,6 +93,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   
   // UI Settings
   const [darkMode, setDarkMode] = useState<boolean>(APP_SETTINGS.ui.theme.darkMode);
+  
+  // User state
+  const [user, setUser] = useState(null);
   
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -124,9 +135,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = subscribeToAuthChanges((user) => {
-      setCurrentUser(user);
+    const unsubscribe = subscribeToAuthChanges((authUser) => {
+      setCurrentUser(authUser);
       setIsLoading(false);
+      setUser(authUser);
     });
     
     return () => unsubscribe();
@@ -164,15 +176,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     darkMode,
     toggleDarkMode,
     refreshData,
+    user,
+    setUser,
   };
-  
-  // Au début de la fonction AppProvider
-  const [user, setUser] = useState({
-    id: '1',
-    name: 'Admin Test',
-    email: 'admin@test.com',
-    role: 'admin'
-  });
   
   return (
     <AppContext.Provider value={contextValue}>
