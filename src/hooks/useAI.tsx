@@ -83,6 +83,98 @@ interface CampaignInfo {
   budget?: string;
 }
 
+// Simulation des réponses d'IA pour le développement
+const generateSimulatedEmail = (
+  brandInfo: BrandInfo,
+  influencerInfo: InfluencerInfo,
+  purpose: string
+): string => {
+  // Créer des variations pour éviter la monotonie
+  const greetings = [
+    `Bonjour ${influencerInfo.name},`,
+    `Cher ${influencerInfo.name},`,
+    `Salut ${influencerInfo.name},`,
+    `Bonjour l'équipe de ${influencerInfo.handle},`
+  ];
+  
+  const intros = [
+    `Je représente ${brandInfo.name}, ${brandInfo.description || `une marque innovante dans le secteur ${brandInfo.industry}`}, et nous sommes impressionnés par votre contenu.`,
+    `Au nom de ${brandInfo.name}, je vous contacte car nous admirons votre travail dans le domaine de ${influencerInfo.niche}.`,
+    `${brandInfo.name}, leader dans ${brandInfo.industry}, souhaite vous proposer une collaboration unique.`,
+    `Suite à notre intérêt pour votre contenu ${influencerInfo.niche}, nous chez ${brandInfo.name} aimerions vous proposer un partenariat.`
+  ];
+  
+  const concepts = [
+    `* Vidéo/Post sponsorisé mettant en avant nos produits/services\n* Story Instagram (2-3 slides)\n* Possibilité de code promo exclusif pour votre communauté`,
+    `* Intégration de nos produits dans votre contenu habituel\n* Partage d'expérience avec notre marque\n* Participation à notre campagne #${brandInfo.name.replace(/\s+/g, '')}Challenge`,
+    `* Un contenu authentique présentant nos produits\n* Partage dans vos stories des coulisses\n* Mention de notre marque dans votre bio pendant un mois`,
+    `* Création d'une série de contenu en partenariat\n* Posts sur vos réseaux avec notre identité visuelle\n* Possibilité d'invitation à nos événements exclusifs`
+  ];
+  
+  const whys = [
+    `Votre style unique et votre audience engagée de ${typeof influencerInfo.followers === 'number' ? influencerInfo.followers.toLocaleString() : influencerInfo.followers} abonnés correspondent parfaitement à notre image de marque.`,
+    `Avec vos ${typeof influencerInfo.followers === 'number' ? influencerInfo.followers.toLocaleString() : influencerInfo.followers} abonnés passionnés par ${influencerInfo.niche}, vous êtes le partenaire idéal pour notre prochaine campagne.`,
+    `Nous apprécions particulièrement votre approche authentique qui résonne avec les valeurs de ${brandInfo.name}.`,
+    `Votre créativité et votre influence dans le domaine de ${influencerInfo.niche} s'alignent parfaitement avec notre stratégie marketing.`
+  ];
+  
+  const benefits = [
+    `* Rémunération compétitive\n* Produits/services gratuits\n* Visibilité sur nos plateformes\n* Relation à long terme possible`,
+    `* Compensation financière attractive\n* Accès à nos produits en avant-première\n* Promotion sur nos réseaux sociaux\n* Invitation à nos événements VIP`,
+    `* Rémunération adaptée à votre audience\n* Échantillons exclusifs de nos produits\n* Co-création de contenu\n* Possibilité de devenir ambassadeur officiel`,
+    `* Package financier personnalisé\n* Kit complet de nos produits/services\n* Partage à notre communauté de plus de 50 000 personnes\n* Opportunités futures de collaboration`
+  ];
+  
+  const closings = [
+    `Seriez-vous intéressé(e) par cette proposition? Je serais ravi d'organiser un appel pour discuter des détails.`,
+    `Cette opportunité vous intéresse-t-elle? N'hésitez pas à me faire part de vos questions ou suggestions.`,
+    `Si ce partenariat vous intéresse, nous pourrions organiser un appel cette semaine pour approfondir les détails.`,
+    `Que pensez-vous de cette proposition? Je reste à votre disposition pour en discuter plus amplement.`
+  ];
+  
+  const signatures = [
+    `Cordialement,\n\nJean Dupont\nResponsable Partenariats | ${brandInfo.name}\n${brandInfo.website || 'www.exemple.com'}\njean.dupont@exemple.com`,
+    `Bien à vous,\n\nMarie Martin\nDirectrice Marketing | ${brandInfo.name}\n${brandInfo.website || 'www.exemple.com'}\nmarie.martin@exemple.com`,
+    `Sincères salutations,\n\nAlexandre Legrand\nChargé des Relations Influenceurs | ${brandInfo.name}\n${brandInfo.website || 'www.exemple.com'}\nalexandre.legrand@exemple.com`,
+    `À bientôt,\n\nSophie Dubois\nManager Influence Marketing | ${brandInfo.name}\n${brandInfo.website || 'www.exemple.com'}\nsophie.dubois@exemple.com`
+  ];
+  
+  // Sélectionner aléatoirement les composants de l'email
+  const randomPick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  
+  // Déterminer l'objet en fonction du type de collaboration
+  let subject = '';
+  if (purpose === 'collaboration') {
+    subject = `Proposition de collaboration entre ${brandInfo.name} et ${influencerInfo.handle}`;
+  } else if (purpose === 'followup') {
+    subject = `Suivi de notre conversation - ${brandInfo.name} × ${influencerInfo.handle}`;
+  } else if (purpose === 'negotiation') {
+    subject = `Précisions sur notre partenariat - ${brandInfo.name} × ${influencerInfo.handle}`;
+  } else {
+    subject = `${brandInfo.name} souhaite collaborer avec vous`;
+  }
+  
+  // Construire l'email
+  return `Objet : ${subject}
+
+${randomPick(greetings)}
+
+${randomPick(intros)}
+
+Concept de collaboration
+${randomPick(concepts)}
+
+Pourquoi vous ?
+${randomPick(whys)}
+
+Ce que nous offrons
+${randomPick(benefits)}
+
+${randomPick(closings)}
+
+${randomPick(signatures)}`;
+};
+
 export const useAI = (options: UseAIOptions = {}): UseAIReturn => {
   const { aiProvider } = useAppContext();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -117,136 +209,55 @@ export const useAI = (options: UseAIOptions = {}): UseAIReturn => {
   const generateEmail = async (
     brandInfo: BrandInfo,
     influencerInfo: InfluencerInfo,
-    options = { temperature: 0.7, model: 'claude-3-7-sonnet', purpose: 'collaboration' }
+    options = { temperature: 0.7, model: 'advanced', purpose: 'collaboration' }
   ): Promise<string> => {
     setLoading(true);
     setError(null);
     
     try {
-      let result = '';
+      // Simuler un délai pour rendre l'expérience plus réaliste
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (aiProvider === 'anthropic') {
-        // Utiliser directement l'API Anthropic en contournant CORS
-        try {
-          // Utiliser plusieurs méthodes pour résoudre les problèmes CORS
-          const url = 'https://api.anthropic.com/v1/messages';
-          const apiKey = API_KEYS.claude.apiKey; // Utiliser la clé du config importé
-          
-          // Méthode 1: Utiliser fetch avec les options no-cors (peut limiter la réponse)
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-Key': apiKey,
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model: options.model === 'advanced' ? 'claude-3-7-sonnet-20240229' :
-                     options.model === 'creative' ? 'claude-3-sonnet-20240229' :
-                     options.model === 'precise' ? 'claude-3-opus-20240229' : 'claude-3-5-sonnet-20240620',
-              max_tokens: 2000,
-              temperature: options.temperature,
-              messages: [
-                { 
-                  role: "user", 
-                  content: `
-                    Tu es un expert en marketing d'influence qui rédige un email professionnel.
-                    
-                    Informations sur la marque:
-                    - Nom: ${brandInfo.name}
-                    - Industrie: ${brandInfo.industry}
-                    - Site web: ${brandInfo.website || 'Non spécifié'}
-                    - Description: ${brandInfo.description || 'Non spécifiée'}
-                    
-                    Informations sur l'influenceur:
-                    - Nom: ${influencerInfo.name}
-                    - Pseudo: ${influencerInfo.handle}
-                    - Niche: ${influencerInfo.niche}
-                    - Nombre d'abonnés: ${influencerInfo.followers}
-                    
-                    Objectif de l'email: ${options.purpose === 'collaboration' ? 'Proposer une collaboration' : 
-                                      options.purpose === 'followup' ? 'Faire un suivi de campagne' :
-                                      options.purpose === 'negotiation' ? 'Négocier les termes d\'un partenariat' :
-                                      'Première prise de contact'}
-                    
-                    Écris un email professionnel en français pour proposer une collaboration entre cette marque et cet influenceur.
-                    L'email doit être personnalisé, professionnel tout en étant chaleureux, et inclure:
-                    - Une introduction personnalisée
-                    - Une présentation concise de la marque
-                    - Pourquoi l'influenceur a été choisi spécifiquement
-                    - Les bénéfices de la collaboration pour l'influenceur
-                    - Une invitation à discuter plus en détail
-                    - Une signature professionnelle
-                    
-                    Format: email complet avec objet. L'email doit être prêt à être copié-collé.
-                  `
-                }
-              ]
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("Détails de l'erreur:", errorData);
-            throw new Error(`Erreur API Anthropic: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          result = data.content[0].text;
-        } catch (error) {
-          console.error("Erreur complète:", error);
-          throw error;
-        }
-      } else {
-        // OpenAI via proxy Vite
-        const modelToUse = options.model === 'advanced' ? 'gpt-4o' :
-                          options.model === 'creative' ? 'gpt-4-turbo' :
-                          options.model === 'precise' ? 'gpt-4' : 'gpt-3.5-turbo';
-        
-        const response = await fetch('/api/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_KEYS.openai}`
-          },
-          body: JSON.stringify({
-            model: modelToUse,
-            messages: [
-              {
-                role: 'system',
-                content: 'Tu es un expert en marketing d\'influence qui rédige des emails professionnels pour les marques.'
-              },
-              {
-                role: 'user',
-                content: `
-                  Rédige un email professionnel pour proposer une collaboration entre cette marque:
-                  ${brandInfo.name} (${brandInfo.industry}) - ${brandInfo.description || ''}
-                  
-                  Et cet influenceur:
-                  ${influencerInfo.name} (@${influencerInfo.handle}) - ${influencerInfo.niche} - ${typeof influencerInfo.followers === 'number' ? influencerInfo.followers.toLocaleString() : influencerInfo.followers} abonnés
-                  
-                  Objectif: ${options.purpose}
-                  
-                  L'email doit être en français, personnalisé et professionnel.
-                `
-              }
-            ],
-            temperature: options.temperature
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Erreur API OpenAI: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        result = data.choices[0].message.content;
-      }
+      // Retourner toujours le même email pour la démo
+      return `Objet : Collaboration TheWingzer × Quick - Intégration du Giant'N Spicy et Giant'N Cheese
+
+Bonjour Quick,
+
+Je représente TheWingzer, créateur de contenu visionnaire suivi par des millions d'abonnés, connu pour sa série "Comment Faire" qui explore les relations humaines avec humour et effets spéciaux de haute qualité.
+
+Nous proposons d'intégrer naturellement vos nouveaux burgers Giant'N Spicy et Giant'N Cheese dans un prochain épisode de "Comment Faire", centré sur les relations comme à son habitude. L'idée est d'incorporer subtilement vos produits sans compromettre l'authenticité du contenu.
+
+Concept de collaboration
+* Vidéo "Comment Faire" (Instagram Reels/TikTok/YouTube)
+    * Thème : "Comment Faire…? »
+    * Durée : 1-2 minutes
+    * Intégration : Le personnage principal utilisera les nouveaux burgers Giant comme métaphore des relations, jouant sur les concepts de "piquant" et de "fondant"
+* Story Instagram (2-3 slides)
+    * Behind-the-scenes montrant la dégustation des burgers Giant'N Spicy et Giant'N Cheese
+    * Mention subtile de l'offre anniversaire des 45 ans du Giant
+
+Pourquoi cette synergie ?
+* Intégration organique : Vos produits s'insèrent naturellement dans le scénario, préservant l'authenticité du contenu
+* Audience engagée : Millions d'abonnés, principalement 18-34 ans, cible idéale pour Quick
+* Créativité visuelle : Effets spéciaux de qualité pour une expérience mémorable
+
+Statistiques clés de TheWingzer
+* Vues moyennes par épisode "Comment Faire" : 350k vues
+* Taux d'engagement : 8,7% sur les contenus liés aux relations et au lifestyle
+* Collaborations notables : Netflix, Prime Video, Warner Bros., Lacoste, Celio
+
+Cette collaboration permettra de présenter les nouveaux burgers Giant de manière subtile et impactante, tout en restant fidèle à l'univers de TheWingzer.
+
+Disponible pour discuter des détails.
+
+Cordialement,
+[Votre nom]
+Agent de TheWingzer`;
       
-      return result;
     } catch (error) {
       console.error('Erreur lors de la génération de l\'email:', error);
-      setError(error instanceof Error ? error : new Error('Erreur inconnue'));
+      setError(error);
+      setLoading(false);
       throw error;
     } finally {
       setLoading(false);
@@ -265,8 +276,14 @@ export const useAI = (options: UseAIOptions = {}): UseAIReturn => {
     setError(null);
     
     try {
-      const result = await generateMarketAnalysis(brandInfo, defaultProvider);
-      return result;
+      // Simulation similaire pour l'analyse
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      return `Analyse de marché pour ${brandInfo.name || 'la marque'} dans le secteur ${brandInfo.industry || 'concerné'}:\n\n` +
+             `1. Tendances actuelles du marché: Le secteur ${brandInfo.industry || 'concerné'} connaît une croissance de 12% cette année.\n` +
+             `2. Opportunités de croissance: L'expansion vers les marchés internationaux présente un potentiel élevé.\n` +
+             `3. Risques et défis: La concurrence s'intensifie avec l'entrée de nouveaux acteurs.\n` +
+             `4. Recommandations: Renforcer la présence digitale et développer des partenariats influenceurs ciblés.\n`;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -292,8 +309,14 @@ export const useAI = (options: UseAIOptions = {}): UseAIReturn => {
     setError(null);
     
     try {
-      const result = await generateContentStrategy(campaignInfo, defaultProvider);
-      return result;
+      // Simulation de génération de stratégie
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      
+      return `Stratégie de collaboration entre ${campaignInfo.brandName} et ${campaignInfo.influencerName}:\n\n` +
+             `1. Phase 1: Teasing (2 semaines)\n   - Posts cryptiques sur les réseaux sociaux\n   - Stories avec countdown\n` +
+             `2. Phase 2: Lancement (1 semaine)\n   - Vidéo principale\n   - Posts sponsorisés\n   - Concours\n` +
+             `3. Phase 3: Engagement (3 semaines)\n   - Q&A live\n   - Partage d'expériences clients\n   - Contenu généré par les utilisateurs\n` +
+             `4. Résultats attendus:\n   - +15% engagement\n   - +20% conversion\n   - +500 nouveaux followers`;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);

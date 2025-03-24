@@ -5,10 +5,15 @@ import Dashboard from './pages/Dashboard';
 import Brands from './pages/Brands';
 import Influencers from './pages/Influencers';
 import InfluencerDetails from './pages/InfluencerDetails';
+import InfluencerEdit from './pages/InfluencerEdit';
+import InfluencerNew from './pages/InfluencerNew';
 import Campaigns from './pages/Campaigns';
+import CampaignNew from './pages/CampaignNew';
+import CampaignEdit from './pages/CampaignEdit';
 import AIAgent from './pages/AIAgent';
 import Scraping from './pages/Scraping';
 import Database from './pages/Database';
+import Analytics from './pages/Analytics';
 import BrandForm from './components/brands/BrandForm';
 import NotFound from './pages/NotFound';
 
@@ -31,8 +36,13 @@ function App() {
           <Route path="brands/new" element={<BrandForm />} />
           <Route path="brands/edit/:id" element={<BrandForm />} />
           <Route path="influencers" element={<Influencers />} />
+          <Route path="influencers/new" element={<InfluencerNew />} />
+          <Route path="influencers/edit/:id" element={<InfluencerEdit />} />
           <Route path="influencer/:id" element={<InfluencerDetails />} />
           <Route path="campaigns" element={<Campaigns />} />
+          <Route path="campaigns/new" element={<CampaignNew />} />
+          <Route path="campaigns/edit/:id" element={<CampaignEdit />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="ai-agent" element={<AIAgent />} />
           <Route path="scraping" element={<Scraping />} />
           <Route path="database" element={<Database />} />

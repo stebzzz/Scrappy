@@ -360,7 +360,7 @@ const Influencers: React.FC = () => {
                       <Plus className="w-4 h-4 mr-1" />
                       Campagne
                     </button>
-                    <Link to={`/influencer/edit/${selectedInfluencer.id}`} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm flex items-center">
+                    <Link to={`/influencers/edit/${selectedInfluencer.id}`} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm flex items-center">
                       <Edit className="w-4 h-4 mr-1" />
                       Modifier
                     </Link>

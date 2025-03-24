@@ -10,6 +10,11 @@ const InfluencerEdit: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("InfluencerEdit monté, ID:", id);
+    console.log("URL complète:", window.location.href);
+  }, [id]);
+
+  useEffect(() => {
     const fetchInfluencer = async () => {
       if (!id) return;
       
