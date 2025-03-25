@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart3, 
   Calendar, 
@@ -24,13 +24,8 @@ import {
   ChevronRight,
   BarChart4
 } from 'lucide-react';
-import { fetchCurrentUser } from '../services/authService';
-import { AnalyticsChart } from '../components/AnalyticsChart';
 
 const Analytics: React.FC = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('30j');
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
@@ -144,65 +139,6 @@ const Analytics: React.FC = () => {
       performance: '96%'
     }
   ];
-
-  // Données fictives pour les graphiques
-  const visitorData = [
-    { name: 'Jan', value: 4000 },
-    { name: 'Fév', value: 3000 },
-    { name: 'Mar', value: 2000 },
-    { name: 'Avr', value: 2780 },
-    { name: 'Mai', value: 1890 },
-    { name: 'Juin', value: 2390 },
-    { name: 'Juil', value: 3490 },
-  ];
-
-  const channelData = [
-    { name: 'Organique', value: 4000 },
-    { name: 'Social', value: 3000 },
-    { name: 'Email', value: 2000 },
-    { name: 'Référent', value: 2780 },
-    { name: 'Direct', value: 1890 },
-  ];
-
-  const conversionData = [
-    { name: 'Jan', value: 65 },
-    { name: 'Fév', value: 59 },
-    { name: 'Mar', value: 80 },
-    { name: 'Avr', value: 81 },
-    { name: 'Mai', value: 56 },
-    { name: 'Juin', value: 55 },
-    { name: 'Juil', value: 40 },
-  ];
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const response = await fetchCurrentUser();
-        if (response.success) {
-          setUser(response.user || null);
-        } else {
-          setError('Erreur d\'authentification: ' + response.message);
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
-        setError('Une erreur est survenue lors du chargement des données');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadUserData();
-  }, []);
-
-  if (loading) {
-    return <div className="p-4 flex justify-center">
-      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
-    </div>;
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-500">{error}</div>;
-  }
 
   // Fonction pour obtenir la couleur de tendance
   const getTrendColor = (trend: string) => {
@@ -479,28 +415,6 @@ const Analytics: React.FC = () => {
             </div>
           </div>
         </section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <AnalyticsChart 
-            data={visitorData} 
-            type="bar" 
-            title="Visiteurs par mois" 
-          />
-          
-          <AnalyticsChart 
-            data={channelData} 
-            type="pie" 
-            title="Visiteurs par source" 
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6">
-          <AnalyticsChart 
-            data={conversionData} 
-            type="line" 
-            title="Taux de conversion (en %)" 
-          />
-        </div>
       </div>
     </div>
   );

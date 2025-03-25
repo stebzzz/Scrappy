@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LogOut, Moon, Sun } from 'lucide-react';
-import { logout } from '../services/authService';
+import { signOut } from '../services/auth';
 import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,7 @@ const Settings: React.FC = () => {
   
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
       navigate('/login');
     } catch (err) {
       console.error('Erreur lors de la déconnexion:', err);
@@ -34,8 +34,8 @@ const Settings: React.FC = () => {
             <LogOut className="w-4 h-4 mr-2" />
                   Déconnexion
                 </button>
-              </div>
-        
+        </div>
+
         <div className="mb-6">
           <label className="block text-gray-400 mb-2">Email</label>
           <div className="text-white bg-gray-700 p-3 rounded-lg">

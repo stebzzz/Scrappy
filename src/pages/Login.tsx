@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Mail, Lock, User, AlertCircle, LogIn, UserPlus, 
   ArrowRight, KeyRound, CheckCircle, TrendingUp, 
@@ -11,11 +11,9 @@ import {
   signInWithEmail, 
   signUpWithEmail, 
   sendPasswordResetEmail,
-  googleSignIn
-} from '../services/authService';
+  googleSignIn 
+} from '../services/auth';
 import { useAppContext } from '../context/AppContext';
-import { Logo } from '../components/Logo';
-import { FcGoogle } from 'react-icons/fc';
 
 // Styles avancés pour une interface premium
 const premiumStyles = `
